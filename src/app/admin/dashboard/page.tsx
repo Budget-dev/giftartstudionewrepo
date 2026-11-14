@@ -84,8 +84,24 @@ export default function AdminDashboard() {
 
   if (ordersLoading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+      <div className="space-y-10 animate-pulse">
+        <div className="space-y-2">
+          <div className="h-8 w-48 bg-slate-200 rounded-lg" />
+          <div className="h-4 w-64 bg-slate-100 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
+              <div className="h-4 w-24 bg-slate-200 rounded-md" />
+              <div className="h-8 w-32 bg-slate-300 rounded-md" />
+              <div className="h-3 w-20 bg-slate-100 rounded-md" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm h-80 bg-slate-50/50" />
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm h-80 bg-slate-50/50" />
+        </div>
       </div>
     );
   }

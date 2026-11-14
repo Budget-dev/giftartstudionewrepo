@@ -60,7 +60,18 @@ export default function ProfilePage() {
   const orderCount = orders?.length || 0;
 
   if (loading) {
-    return <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-sky-500" /></div>;
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="space-y-2">
+          <div className="h-8 w-48 bg-slate-200 rounded-md" />
+          <div className="h-4 w-64 bg-slate-100 rounded-md" />
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-md h-72" />
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-md h-72" />
+        </div>
+      </div>
+    );
   }
 
   return (

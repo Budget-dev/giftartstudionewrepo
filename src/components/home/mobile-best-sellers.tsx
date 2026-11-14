@@ -82,7 +82,20 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-pink-400" /></div>
+          <div className="relative pb-[120px] animate-pulse">
+            <div className="relative w-full aspect-[1.6/1] rounded-[24px] bg-gradient-to-br from-pink-200 to-amber-100 flex items-center justify-center">
+              <h3 className="font-headline font-black text-2xl text-white/80 uppercase">Best Sellers</h3>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-2 grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((idx) => (
+                <div key={idx} className="bg-white rounded-[14px] p-2 shadow-md space-y-2">
+                  <div className="aspect-square w-full rounded-[10px] bg-pink-50" />
+                  <div className="h-2.5 w-3/4 bg-pink-100 rounded-full" />
+                  <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : products && products.length > 0 ? (
           <div className="relative pb-[120px]">
             {/* Banner Area */}

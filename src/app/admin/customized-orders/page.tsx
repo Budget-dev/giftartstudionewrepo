@@ -107,8 +107,16 @@ export default function CustomizedOrdersAdminPage() {
         </div>
 
         {loading ? (
-          <div className="py-32 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+          <div className="p-8 space-y-4 animate-pulse">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between p-4 bg-slate-50/60 rounded-2xl gap-4">
+                <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                <div className="h-4 w-32 bg-slate-200 rounded-md" />
+                <div className="h-12 w-12 bg-slate-200 rounded-xl" />
+                <div className="h-6 w-20 bg-slate-200 rounded-full" />
+                <div className="h-8 w-8 bg-slate-200 rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : filteredOrders && filteredOrders.length > 0 ? (
           <Table>

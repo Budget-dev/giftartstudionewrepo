@@ -1,44 +1,198 @@
-
 rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model & Architecture
+// ===============================================================
+//
+// Collection: products
+// Document ID: productId (auto-generated or slug)
+// Fields:
+//   - name: string (required) - Product title
+//   - price: number (required) - Price in INR
+//   - image: string (optional) - Main product image URL
+//   - category: string (optional) - Category identifier
+//   - subcategory: string (optional) - Subcategory identifier
+//
+// Collection: orders
+// Document ID: orderId (auto-generated)
+// Fields:
+//   - userId: string (required) - 'guest' or Auth UID
+//   - customerName: string (required, 1-200 chars) - Buyer / recipient name
+//   - email: string (optional) - Contact email
+//   - phone: string (optional) - Contact phone number
+//   - items: list (required, 1-100 items) - Ordered products list
+//   - total: number (required, > 0) - Order total amount
+//   - discountAmount: number (optional) - Applied discount amount
+//   - couponCode: string (optional) - Applied coupon code
+//   - status: string (optional) - Order status ('Paid', 'Pending', etc.)
+//   - trackingStatus: string (optional) - Tracking step ('Order Placed', 'Shipped', etc.)
+//   - shippingAddress: map (optional) - Delivery address
+//   - paymentMethod: string (optional) - Payment provider
+//   - paymentStatus: string (optional) - Payment status
+//   - transactionId: string (optional) - Payment / UTR reference
+//   - createdAt: timestamp (optional) - Creation timestamp
+//
+// Collection: coupons
+// Document ID: couponId (auto-generated)
+// Fields:
+//   - code: string (required) - Discount code
+//   - discountType: string (required) - 'Percentage' or 'Fixed'
+//   - value: number (required) - Discount value
+//   - status: string (required) - 'Active' / 'Inactive'
+//   - usageCount: number (required) - Usage counter (incremented during checkout)
+//   - createdAt: timestamp (optional)
+//
+// Collection: users
+// Document ID: userId (matches auth.uid)
+// Fields:
+//   - uid: string (required, immutable) - Auth UID
+//   - displayName: string (optional) - Full name
+//   - email: string (optional) - Primary email
+//   - phoneNumber: string (optional) - Contact phone
+//   - role: string (optional) - 'admin' (only for super owner) or 'user'
+//   - createdAt: timestamp (optional)
+//
+// Collection: wishlist
+// Document ID: docId (auto-generated)
+// Fields:
+//   - userId: string (required, immutable) - Auth UID
+//   - productId: string (required) - Product identifier
+//   - name: string (optional) - Product title
+//   - price: number (optional) - Product price
+//   - image: string (optional) - Product image
+//   - addedAt: timestamp/date (optional)
+//
+// Collection: customized_orders
+// Document ID: orderId (auto-generated)
+// Fields:
+//   - userId: string (required) - Auth UID
+//   - productName: string (required) - Base product name
+//   - customPrompt: string (required) - AI customization prompt
+//   - generatedDesignImage: string (required) - AI design image URL
+//   - price: number (required) - Price with customization fee
+//   - status: string (required) - Order status
+//   - createdAt: timestamp (optional)
+//
+// Collection: settings
+// Document ID: docId (e.g. 'seo')
+//
+// Collection: homepageDesktop, homepage_sections, mobile_homepage_sections
+// Document ID: docId
+//
+// Collection: rto
+// Document ID: rtoId
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     // STRICT: Only the specific owner email can perform admin actions
     function isSuperOwner() {
       return isSignedIn() && request.auth.token.email == 'rohanswakkargiftartstudio@gmail.com';
     }
 
-    // Products: Everyone can read, only super owner can manage
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Domain Validator: Orders Creation
+    function isValidOrderCreate() {
+      return hasRequiredFields(['customerName', 'total', 'items']) &&
+             request.resource.data.total is number && request.resource.data.total > 0 &&
+             request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 100 &&
+             request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 && request.resource.data.customerName.size() <= 200 &&
+             (!('userId' in request.resource.data) || request.resource.data.userId is string);
+    }
+
+    // Domain Validator: Coupon Usage Increment
+    function isCouponUsageIncrement() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']) &&
+             request.resource.data.usageCount is number &&
+             (
+               !('usageCount' in resource.data) ||
+               request.resource.data.usageCount == resource.data.usageCount + 1
+             );
+    }
+
+    // Domain Validator: User Profile Creation
+    function isValidUserCreate(userId) {
+      return (!('uid' in request.resource.data) || request.resource.data.uid == userId) &&
+             (!('role' in request.resource.data) || request.resource.data.role != 'admin' || isSuperOwner());
+    }
+
+    // Domain Validator: User Profile Update
+    function isValidUserUpdate() {
+      return areImmutableFieldsUnchanged(['uid']) &&
+             (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) || isSuperOwner());
+    }
+
+    // ===============================================================
+    // Collection Match Rules
+    // ===============================================================
+
+    // Products: Public read for browsing, super owner full management
     match /products/{productId} {
       allow read: if true;
       allow write: if isSuperOwner();
     }
-    
-    // Users: Owner or super owner access
-    match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperOwner());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperOwner());
+
+    // Orders: Public create for guest & user checkout with strict validation.
+    // Read allowed for super owner, authenticated order owner, or single document read matching order ID (guest tracking).
+    // Update and delete strictly restricted to super owner.
+    match /orders/{orderId} {
+      allow get: if isSuperOwner() || 
+                    (isSignedIn() && resource.data.userId == request.auth.uid) || 
+                    orderId == resource.id;
+      allow list: if isSuperOwner() || 
+                     (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSuperOwner() || isValidOrderCreate();
+      allow update, delete: if isSuperOwner();
     }
 
-    // Orders: Owner create/read, super owner full control, guest allow create
-    match /orders/{orderId} {
+    // Coupons: Public read for checkout validation, super owner create/delete.
+    // Customers (guest/auth) can update ONLY usageCount via increment(1) upon checkout.
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow create, delete: if isSuperOwner();
+      allow update: if isSuperOwner() || isCouponUsageIncrement();
+    }
+
+    // Users: Owner or super owner access, with RBAC privilege protection
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperOwner());
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperOwner()) && isValidUserCreate(userId);
+      allow update: if isSignedIn() && (request.auth.uid == userId || isSuperOwner()) && isValidUserUpdate();
+      allow delete: if isSuperOwner();
+    }
+
+    // Wishlist: Authenticated user or super owner only. Guest mode uses localStorage.
+    match /wishlist/{docId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperOwner());
-      allow create: if true;
-      allow update, delete: if isSuperOwner();
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isSuperOwner());
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperOwner());
     }
 
     // Customized AI Orders: Owner create/read, super owner full control
     match /customized_orders/{orderId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperOwner());
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isSuperOwner());
       allow update, delete: if isSuperOwner();
     }
 
-    // Homepage Configs
+    // Homepage Configurations: Public read, super owner write
     match /homepageDesktop/{docId} {
       allow read: if true;
       allow write: if isSuperOwner();
@@ -49,32 +203,23 @@ service cloud.firestore {
       allow write: if isSuperOwner();
     }
 
-    // Homepage sections (newsletter, desktop sections)
     match /homepage_sections/{docId} {
       allow read: if true;
       allow write: if isSuperOwner();
     }
 
-    // Coupons: Everyone can read active status, only super owner can write
-    match /coupons/{couponId} {
-      allow read: if true;
-      allow write: if isSuperOwner();
-    }
-
-    // Wishlist: Only owner or super owner can access
-    match /wishlist/{docId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperOwner());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isSuperOwner());
-    }
-
-    // Settings
+    // Settings: Public read (SEO, dynamic tags), super owner write
     match /settings/{docId} {
       allow read: if true;
       allow write: if isSuperOwner();
     }
 
-    // Catch-all for other admin tasks
+    // Return to Origin (RTO) cases: Admin only
+    match /rto/{rtoId} {
+      allow read, write: if isSuperOwner();
+    }
+
+    // Catch-all: Super owner only for unlisted collections / admin tasks
     match /{path=**} {
       allow read, write: if isSuperOwner();
     }

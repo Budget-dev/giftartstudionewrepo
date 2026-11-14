@@ -86,7 +86,21 @@ export function TrendingCarousel() {
         </motion.div>
 
         {loading ? (
-          <div className="py-24 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-sky-500" /></div>
+          <div className="flex gap-6 md:gap-10 overflow-hidden py-4">
+            {[0, 1, 2, 3].map((idx) => (
+              <div 
+                key={idx}
+                className="flex-[0_0_280px] md:flex-[0_0_340px] rounded-[2.5rem] bg-white p-5 border border-slate-100 shadow-xl space-y-4 animate-pulse"
+              >
+                <div className="aspect-square w-full rounded-[2rem] bg-gradient-to-br from-purple-50 to-pink-50" />
+                <div className="space-y-2">
+                  <div className="h-4 w-3/4 bg-purple-100 rounded-full" />
+                  <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                  <div className="h-5 w-1/3 bg-purple-200 rounded-full mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : trendingProducts && trendingProducts.length > 0 ? (
           <div className="overflow-hidden -mx-4 px-4" ref={emblaRef}>
             <div className="flex gap-6 md:gap-10">

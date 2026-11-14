@@ -58,7 +58,16 @@ export function ProductGallery({
           </button>
 
           {loading ? (
-             <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-sky-500" /></div>
+             <div className="flex gap-6 md:gap-10 overflow-hidden pb-8">
+               {[0, 1, 2, 3].map((idx) => (
+                 <div key={idx} className="w-[280px] md:w-[320px] flex-shrink-0 bg-white rounded-[2.5rem] p-5 border border-slate-100 shadow-lg animate-pulse space-y-4">
+                   <div className="aspect-square w-full rounded-[2rem] bg-slate-100" />
+                   <div className="h-4 w-3/4 bg-slate-200 rounded-full" />
+                   <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                   <div className="h-5 w-1/3 bg-purple-100 rounded-full mt-2" />
+                 </div>
+               ))}
+             </div>
           ) : displayProducts && displayProducts.length > 0 ? (
             <div className="flex gap-6 md:gap-10 overflow-x-auto pb-8 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
               {displayProducts.map(product => (

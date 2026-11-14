@@ -92,7 +92,15 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
 
         {/* Product Carousel */}
         {loading ? (
-          <div className="py-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>
+          <div className="grid grid-cols-3 gap-2 py-2">
+            {[0, 1, 2].map((idx) => (
+              <div key={idx} className="bg-white rounded-[16px] overflow-hidden p-1.5 border border-amber-50 shadow-sm animate-pulse space-y-2">
+                <div className="aspect-[4/5] w-full rounded-[12px] bg-amber-50" />
+                <div className="h-3 w-3/4 bg-amber-100 rounded-full" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+              </div>
+            ))}
+          </div>
         ) : products && products.length > 0 ? (
           <>
             <div className="overflow-hidden" ref={emblaRef}>

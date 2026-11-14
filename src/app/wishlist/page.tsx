@@ -127,9 +127,15 @@ export default function WishlistPage() {
         )}
 
         {loading ? (
-          <div className="h-[50vh] flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin text-sky-500" />
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Opening your wishlist...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+            {[0, 1, 2, 3].map((idx) => (
+              <div key={idx} className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-md space-y-4">
+                <div className="aspect-square w-full rounded-[1.5rem] bg-slate-100" />
+                <div className="h-4 w-3/4 bg-slate-200 rounded-full" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                <div className="h-8 w-full bg-slate-100 rounded-xl mt-2" />
+              </div>
+            ))}
           </div>
         ) : !wishlistItems || wishlistItems.length === 0 ? (
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-8 md:p-16 text-center space-y-8 max-w-2xl mx-auto">

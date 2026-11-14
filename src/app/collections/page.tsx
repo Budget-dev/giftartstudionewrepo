@@ -66,7 +66,15 @@ export default function CollectionsPage() {
               <Link href="/shop/new/best-sellers" className="text-[10px] font-black text-sky-600 uppercase tracking-widest hover:underline">View All</Link>
             </div>
             {bestLoading ? (
-              <div className="py-12 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-slate-300" /></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-3">
+                    <div className="aspect-square rounded-2xl bg-slate-100" />
+                    <div className="h-4 w-3/4 rounded-lg bg-slate-100" />
+                    <div className="h-4 w-1/2 rounded-lg bg-slate-100" />
+                  </div>
+                ))}
+              </div>
             ) : bestSellers && bestSellers.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {bestSellers.map(product => (
@@ -86,7 +94,15 @@ export default function CollectionsPage() {
               <Link href="/shop/new/new-collection" className="text-[10px] font-black text-sky-600 uppercase tracking-widest hover:underline">View All</Link>
             </div>
             {newLoading ? (
-              <div className="py-12 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-slate-300" /></div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-3">
+                    <div className="aspect-square rounded-2xl bg-slate-100" />
+                    <div className="h-4 w-3/4 rounded-lg bg-slate-100" />
+                    <div className="h-4 w-1/2 rounded-lg bg-slate-100" />
+                  </div>
+                ))}
+              </div>
             ) : newArrivals && newArrivals.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {newArrivals.map(product => (

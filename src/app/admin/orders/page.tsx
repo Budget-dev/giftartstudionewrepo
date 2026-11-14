@@ -133,8 +133,21 @@ export default function OrdersPage() {
         </div>
 
         {loading ? (
-          <div className="py-32 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <div className="p-8 space-y-4 animate-pulse">
+            {[0, 1, 2, 3, 4].map((idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/60 rounded-2xl gap-4">
+                <div className="h-4 w-20 bg-slate-200 rounded-md" />
+                <div className="space-y-1 flex-1 max-w-xs">
+                  <div className="h-3.5 w-32 bg-slate-200 rounded-md" />
+                  <div className="h-2.5 w-24 bg-slate-100 rounded-md" />
+                </div>
+                <div className="h-4 w-24 bg-slate-200 rounded-md" />
+                <div className="h-4 w-16 bg-slate-200 rounded-md" />
+                <div className="h-6 w-20 bg-purple-100 rounded-full" />
+                <div className="h-6 w-24 bg-slate-200 rounded-full" />
+                <div className="h-8 w-8 bg-slate-200 rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : filteredOrders && filteredOrders.length > 0 ? (
           <Table>
@@ -162,7 +175,18 @@ export default function OrdersPage() {
                     <TableCell className="text-sm font-bold text-slate-500">
                       {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}
                     </TableCell>
-                    <TableCell className="text-sm font-black text-slate-800">₹{order.total?.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm font-black text-slate-800">
+                      <div>₹{order.total?.toLocaleString()}</div>
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                        {order.paymentMethod === 'Razorpay' ? (
+                          <span className="text-[#5f259f] font-black bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">Razorpay</span>
+                        ) : order.paymentMethod === 'PhonePe UPI' ? (
+                          <span className="text-purple-600 font-black">PhonePe</span>
+                        ) : (
+                          <span>{order.paymentMethod || 'COD'}</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -311,9 +335,38 @@ export default function OrdersPage() {
                     <div className="text-sm font-black text-slate-800">{selectedOrder.customerName}</div>
                     <div className="text-xs font-bold text-slate-500">{selectedOrder.email}</div>
                     <div className="text-xs font-bold text-slate-500">Phone: {selectedOrder.phone || 'N/A'}</div>
-                    <div className="text-xs font-bold text-slate-500 mt-2 bg-indigo-50 text-indigo-700 px-2 py-1 rounded inline-block">
-                      Payment: {selectedOrder.paymentMethod || 'N/A'}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <div className={cn(
+                        "text-xs font-bold px-2.5 py-1 rounded-md inline-block",
+                        selectedOrder.paymentMethod === 'Razorpay'
+                          ? "bg-purple-100 text-[#5f259f] border border-purple-200"
+                          : selectedOrder.paymentMethod === 'PhonePe UPI'
+                            ? "bg-purple-100 text-purple-800 border border-purple-200"
+                            : "bg-indigo-50 text-indigo-700"
+                      )}>
+                        Payment: {selectedOrder.paymentMethod || 'N/A'}
+                      </div>
+                      {selectedOrder.paymentStatus && (
+                        <div className="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                          {selectedOrder.paymentStatus}
+                        </div>
+                      )}
                     </div>
+                    {selectedOrder.paymentMethod === 'Razorpay' && (selectedOrder.transactionId || selectedOrder.razorpayPaymentId) && (
+                      <div className="mt-2 p-2.5 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 text-xs">
+                        <span className="text-[10px] uppercase font-bold text-[#5f259f] block">Razorpay Payment ID:</span>
+                        <span className="font-mono font-black text-purple-950 select-all block mt-0.5">{selectedOrder.transactionId || selectedOrder.razorpayPaymentId}</span>
+                        {selectedOrder.razorpayOrderId && (
+                          <span className="text-[10px] font-mono text-slate-500 block mt-1">Order ID: {selectedOrder.razorpayOrderId}</span>
+                        )}
+                      </div>
+                    )}
+                    {selectedOrder.paymentMethod === 'PhonePe UPI' && selectedOrder.transactionId && (
+                      <div className="mt-2 p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-xs">
+                        <span className="text-[10px] uppercase font-bold text-purple-600 block">PhonePe UTR / Transaction ID:</span>
+                        <span className="font-mono font-black text-purple-900 select-all block mt-0.5">{selectedOrder.transactionId}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -5,24 +5,32 @@ import Image from 'next/image';
 import { 
   Star, 
   ShoppingCart, 
-  Bolt, 
+  Zap, 
   Heart, 
-  ShieldCheck, 
   Truck, 
   Plus, 
   Minus, 
-  Wand2, 
+  Pencil, 
   CheckCircle2, 
   Loader2, 
-  Tag,
-  Play,
-  RotateCcw,
+  Play, 
+  ChevronRight,
+  Droplet,
+  Leaf,
+  Shield,
+  Thermometer,
+  Gift,
+  Sparkles,
   Package,
-  ChevronsLeft,
-  ChevronsRight
+  Flame,
+  Scale,
+  Ruler,
+  Users,
+  Layers,
+  Milk,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Product } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +50,10 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [personalizationName, setPersonalizationName] = useState('');
+  const [selectedVariantOption, setSelectedVariantOption] = useState('');
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedCapacity, setSelectedCapacity] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'box' | 'care'>('description');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   
@@ -56,11 +68,98 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistDocId, setWishlistDocId] = useState<string | null>(null);
 
-  // Check if item is in wishlist on load
+  // Fallbacks and derived attributes
+  const colors = useMemo(() => {
+    if (product.colors && product.colors.length > 0) return product.colors;
+    return [
+      { name: 'Purple', hex: '#9333ea' },
+      { name: 'Pink', hex: '#f472b6' },
+      { name: 'Sky Blue', hex: '#38bdf8' },
+      { name: 'Mint Green', hex: '#4ade80' }
+    ];
+  }, [product.colors]);
+
+  const capacities = useMemo(() => {
+    if (product.capacities && product.capacities.length > 0) return product.capacities;
+    if (product.sizes && product.sizes.length > 0) return product.sizes;
+    return ['500 ml', '750 ml'];
+  }, [product.capacities, product.sizes]);
+
+  const personalizationDropdownOptions = useMemo(() => {
+    if (product.personalizationOptions && product.personalizationOptions.length > 0) {
+      return product.personalizationOptions;
+    }
+    return [
+      'Font Style: Playful Comic',
+      'Font Style: Elegant Cursive',
+      'Font Style: Modern Bold',
+      'Icon Charm: Star / Magic',
+      'Icon Charm: Unicorn / Dino'
+    ];
+  }, [product.personalizationOptions]);
+
+  const highlights = useMemo(() => {
+    if (product.highlights && product.highlights.length > 0) return product.highlights;
+    return [
+      "Personalized with your child's name",
+      "Leak-proof and spill-proof lid",
+      "BPA-free, food-grade material",
+      "Lightweight, durable and kid-friendly",
+      "Available in multiple colours and fun designs",
+      "Perfect for school, travel, sports and daily use"
+    ];
+  }, [product.highlights]);
+
+  const specifications = useMemo(() => {
+    if (product.specifications && Object.keys(product.specifications).length > 0) {
+      return product.specifications;
+    }
+    return {
+      'Capacity': capacities.join(' / '),
+      'Material': 'Food-grade, BPA-Free (PP + Tritan)',
+      'Weight': '~ 210 g (500 ml)',
+      'Dimensions': '7.2 × 22 cm (500 ml)',
+      'Age Group': '3+ Years'
+    };
+  }, [product.specifications, capacities]);
+
+  const whatsInBox = useMemo(() => {
+    if (product.whatsInBox && product.whatsInBox.length > 0) return product.whatsInBox;
+    return [
+      `1 × ${product.name}`,
+      '1 × Spill-Proof Lid & Straw Cap',
+      '1 × Soft Cleaning Sponge Brush',
+      '1 × GiftArtStudio Care & Warranty Guide'
+    ];
+  }, [product.whatsInBox, product.name]);
+
+  const careInstructions = useMemo(() => {
+    if (product.careInstructions && product.careInstructions.length > 0) return product.careInstructions;
+    return [
+      'Hand wash recommended to preserve custom prints and vibrant colours',
+      'Do not place in microwave oven or direct deep freezer',
+      'Wash thoroughly with mild soap and warm water before initial use',
+      'Store with lid open to ensure complete ventilation and drying'
+    ];
+  }, [product.careInstructions]);
+
+  // Set default variants
+  useEffect(() => {
+    if (colors.length > 0 && !selectedColor) {
+      setSelectedColor(colors[0].name);
+    }
+  }, [colors, selectedColor]);
+
+  useEffect(() => {
+    if (capacities.length > 0 && !selectedCapacity) {
+      setSelectedCapacity(capacities[0]);
+    }
+  }, [capacities, selectedCapacity]);
+
+  // Check wishlist
   useEffect(() => {
     async function checkWishlist() {
       if (!user) {
-        // Guest mode checking via localStorage
         const savedWishlist = localStorage.getItem('giftart_wishlist');
         if (savedWishlist && product.id) {
           try {
@@ -76,9 +175,6 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           } catch (e) {
             console.error('Failed to parse guest wishlist', e);
           }
-        } else {
-          setIsWishlisted(false);
-          setWishlistDocId(null);
         }
         return;
       }
@@ -107,7 +203,6 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
   const handleToggleWishlist = async () => {
     if (!user) {
-      // Guest mode toggling via localStorage
       try {
         const savedWishlist = localStorage.getItem('giftart_wishlist') || '[]';
         let items = JSON.parse(savedWishlist);
@@ -120,7 +215,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           setWishlistDocId(null);
           toast({
             title: "Removed from Wishlist",
-            description: `${product.name} has been removed from guest wishlist.`
+            description: `${product.name} removed from your wishlist.`
           });
         } else {
           const newId = `local_${Date.now()}`;
@@ -137,12 +232,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           setIsWishlisted(true);
           setWishlistDocId(newId);
           toast({
-            title: "Added to Wishlist",
-            description: `${product.name} is now saved in guest wishlist.`
+            title: "Saved to Wishlist",
+            description: `${product.name} is now saved in your wishlist.`
           });
         }
       } catch (err) {
-        console.error("Error toggling guest wishlist: ", err);
+        console.error('Error toggling guest wishlist: ', err);
       }
       return;
     }
@@ -155,7 +250,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         setWishlistDocId(null);
         toast({
           title: "Removed from Wishlist",
-          description: `${product.name} has been removed from your wishlist.`
+          description: `${product.name} removed from your wishlist.`
         });
       } else {
         const newDoc = await addDoc(collection(db, 'wishlist'), {
@@ -169,8 +264,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         setIsWishlisted(true);
         setWishlistDocId(newDoc.id);
         toast({
-          title: "Added to Wishlist",
-          description: `${product.name} is now saved in your wishlist.`
+          title: "Saved to Wishlist",
+          description: `${product.name} added to your wishlist.`
         });
       }
     } catch (err) {
@@ -189,15 +284,45 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     return list;
   }, [product]);
 
+  const discountPercentage = useMemo(() => {
+    if (product.oldPrice && product.oldPrice > product.price) {
+      return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+    }
+    return 30; // fallback aesthetic badge
+  }, [product.price, product.oldPrice]);
+
+  const skuCode = useMemo(() => {
+    if (product.sku) return product.sku;
+    const catCode = (product.category || 'GAS').replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase();
+    const subCode = (product.subcategory || 'WB').replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase();
+    const idCode = (product.id || '001').slice(-3).toUpperCase();
+    return `GAS-${catCode}-${subCode}-${idCode}`;
+  }, [product.sku, product.category, product.subcategory, product.id]);
+
+  const maxChars = product.personalizationMaxChars || 12;
+
   const handleAddToCart = () => {
-    addToCart(product, quantity, { personalizationName });
-    toast({ title: "Magic Added to Bag!", description: `${product.name} is ready for you.` });
+    addToCart(product, quantity, { 
+      personalizationName,
+      selectedColor,
+      selectedCapacity,
+      personalizationOption: selectedVariantOption
+    });
+    toast({ 
+      title: "Added to Bag!", 
+      description: `${product.name} (${selectedCapacity || selectedColor || 'Customized'}) is ready in your cart.` 
+    });
   };
 
   const handleBuyNow = async () => {
     setIsProcessing(true);
-    addToCart(product, quantity, { personalizationName });
-    setTimeout(() => router.push('/checkout'), 400);
+    addToCart(product, quantity, { 
+      personalizationName,
+      selectedColor,
+      selectedCapacity,
+      personalizationOption: selectedVariantOption
+    });
+    setTimeout(() => router.push('/checkout'), 350);
   };
 
   const onThumbClick = (idx: number) => {
@@ -212,205 +337,581 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     });
   }, [emblaApi]);
 
-  return (
-    <div className="grid lg:grid-cols-12 gap-8 lg:gap-16 items-start max-w-7xl mx-auto px-4 md:px-6">
-      {/* Visual Side: Image Gallery */}
-      <div className="lg:col-span-7 flex flex-col md:flex-row gap-5">
-        <div className="hidden md:flex flex-col gap-3 shrink-0 overflow-y-auto scrollbar-hide max-h-[550px] w-24">
-          {galleryImages.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => onThumbClick(i)}
-              className={cn(
-                "relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300",
-                selectedImage === i 
-                  ? "border-[#0ea5e9] shadow-lg shadow-sky-100 scale-105" 
-                  : "border-slate-100 hover:border-slate-300 opacity-70 hover:opacity-100"
-              )}
-            >
-              <Image src={img} alt={`Thumb ${i}`} fill className="object-cover" />
-            </button>
-          ))}
-        </div>
+  const subtitleText = product.subtitle || 
+    `A cute, durable and leak-proof ${product.name.toLowerCase()} with your child's name – perfect for school, travel and everyday use.`;
 
-        <div className="flex-1 relative group">
-           <div className="overflow-hidden rounded-3xl bg-slate-50 border border-slate-100 shadow-xl" ref={emblaRef}>
-             <div className="flex">
-               {galleryImages.map((img, i) => (
-                 <div key={i} className="relative flex-[0_0_100%] min-w-0 aspect-[1/1] md:aspect-[4/5] overflow-hidden">
-                   <Image 
-                    src={img} 
-                    alt={`${product.name}`} 
-                    fill 
-                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                    priority={i === 0}
-                    sizes="(max-width: 1024px) 100vw, 55vw"
-                    unoptimized
-                   />
-                 </div>
-               ))}
-             </div>
-           </div>
-           
-           <div className="absolute top-4 left-4 md:top-8 md:left-8 flex flex-col gap-2 z-10">
-              {product.isBestSeller && (
-                <div className="bg-[#FFA500] text-white text-[8px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-6">
+      <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+        
+        {/* Visual Column: Image Gallery */}
+        <div className="lg:col-span-6 flex flex-col gap-4">
+          <div className="relative group rounded-3xl overflow-hidden bg-[#e6f4f1] border border-slate-100 shadow-sm aspect-square flex items-center justify-center">
+            
+            {/* Top Badges */}
+            <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-20">
+              {product.isBestSeller !== false && (
+                <div className="bg-[#f59e0b] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
                   BEST SELLER
                 </div>
               )}
               {product.isNew && (
-                <div className="bg-[#0ea5e9] text-white text-[8px] md:text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase tracking-widest">
+                <div className="bg-[#0ea5e9] text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
                   NEW
                 </div>
               )}
-           </div>
-
-           {product.videoUrl && (
-             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsVideoOpen(true)}
-              className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 hover:bg-white transition-all z-20 group/vid"
-             >
-                <div className="w-8 h-8 bg-[#0ea5e9] rounded-full flex items-center justify-center text-white shadow-lg transition-transform group-hover/vid:rotate-12">
-                  <Play className="h-4 w-4 fill-white ml-0.5" />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-800">Watch Reel</span>
-             </motion.button>
-           )}
-
-           <div className="flex md:hidden justify-center gap-2 mt-4">
-             {galleryImages.map((_, i) => (
-               <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", selectedImage === i ? "w-6 bg-[#0ea5e9]" : "w-1.5 bg-slate-200")} />
-             ))}
-           </div>
-        </div>
-      </div>
-
-      {/* Info Side: Details & Purchase */}
-      <div className="lg:col-span-5 space-y-4 md:space-y-10 md:sticky md:top-32 pb-10">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-3 md:space-y-6"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 text-[#0ea5e9] rounded-full text-[9px] font-black uppercase tracking-[0.15em] border border-sky-100">
-            {product.category} • {product.subcategory}
-          </div>
-
-          <h1 className="text-2xl md:text-5xl font-headline font-black text-slate-800 leading-tight tracking-tight">
-            {product.name}
-          </h1>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-[#FFA500] text-[#FFA500]" />
-              <span className="text-sm font-black text-slate-800">{product.rating?.toFixed(1) || '5.0'}</span>
-              <span className="text-xs text-slate-400 font-bold ml-1 uppercase">({product.reviews || 0} Reviews)</span>
             </div>
-            {product.inventoryStatus === 'In Stock' && (
-              <div className="flex items-center gap-1.5 text-emerald-500 text-[9px] font-black uppercase tracking-widest">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Handcrafted Ready
+
+            {/* Video Reel Trigger if Available */}
+            {product.videoUrl && (
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsVideoOpen(true)}
+                className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 hover:bg-white transition-all z-20"
+              >
+                <div className="w-5 h-5 bg-[#5f259f] rounded-full flex items-center justify-center text-white">
+                  <Play className="h-2.5 w-2.5 fill-white ml-0.5" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-800">Watch Reel</span>
+              </motion.button>
+            )}
+
+            {/* Carousel Viewport */}
+            <div className="w-full h-full overflow-hidden" ref={emblaRef}>
+              <div className="flex h-full">
+                {galleryImages.map((img, i) => (
+                  <div key={i} className="relative flex-[0_0_100%] min-w-0 h-full p-4 md:p-6 flex items-center justify-center">
+                    <div className="relative w-full h-full">
+                      <Image 
+                        src={img} 
+                        alt={`${product.name} view ${i + 1}`} 
+                        fill 
+                        className="object-contain transition-transform duration-700 group-hover:scale-105"
+                        priority={i === 0}
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        unoptimized
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Carousel Dots */}
+            {galleryImages.length > 1 && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-1.5 z-20">
+                {galleryImages.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onThumbClick(i)}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={cn(
+                      "transition-all duration-300 rounded-full",
+                      selectedImage === i 
+                        ? "w-6 h-1.5 bg-[#0ea5e9]" 
+                        : "w-1.5 h-1.5 bg-slate-300 hover:bg-slate-400"
+                    )}
+                  />
+                ))}
               </div>
             )}
           </div>
 
-          <div className="flex items-baseline gap-4">
-            <span className="text-3xl md:text-5xl font-black text-slate-800">₹{product.price.toLocaleString()}</span>
-            {product.oldPrice && (
-              <span className="text-xl text-slate-300 line-through font-bold">₹{product.oldPrice.toLocaleString()}</span>
-            )}
+          {/* Thumbnails Row */}
+          {galleryImages.length > 1 && (
+            <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
+              {galleryImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => onThumbClick(i)}
+                  className={cn(
+                    "relative w-16 h-16 rounded-xl overflow-hidden border-2 bg-slate-50 shrink-0 transition-all",
+                    selectedImage === i 
+                      ? "border-[#5f259f] ring-2 ring-[#e9c9f2] shadow-sm scale-95" 
+                      : "border-slate-200 opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <Image src={img} alt={`Thumb ${i + 1}`} fill className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Info Column: Details & Purchase */}
+        <div className="lg:col-span-6 space-y-5">
+          
+          {/* Category Pill */}
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f3e8ff] text-[#7e22ce] rounded-full text-xs font-bold tracking-wide">
+              <Sparkles className="h-3 w-3 text-[#9333ea]" />
+              <span>{product.category || 'Kids Water Bottle'}</span>
+              {product.subcategory && (
+                <>
+                  <span className="text-[#c084fc]">•</span>
+                  <span>{product.subcategory.replace(/-/g, ' ')}</span>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="text-slate-500 font-medium italic text-xs md:text-lg leading-relaxed border-l-4 border-sky-100 pl-4 py-1">
-            "{product.description}"
-          </div>
-        </motion.div>
+          {/* Product Title */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-snug">
+            {product.name}
+          </h1>
 
-        <div className="space-y-4 md:space-y-8">
-          {/* Customization Toggle */}
-          <div className="pt-2">
-             <div className="bg-white border-2 border-dashed border-sky-100 rounded-2xl p-4 space-y-3">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Wand2 className="h-3 w-3 text-[#0ea5e9]" /> CUSTOMIZE WITH NAME <span className="text-[#FF6B95] font-bold text-[8px] lowercase tracking-normal"> (Name characters should be under 10 alphabet)</span>
-                </p>
-                <Input 
-                  placeholder="NAME FOR PERSONALIZATION" 
+          {/* Tagline / Subtitle */}
+          <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+            {subtitleText}
+          </p>
+
+          {/* Rating & Social Proof Row */}
+          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-700">
+            <div className="flex items-center gap-1 font-bold">
+              <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+              <span>{product.rating?.toFixed(1) || '5.0'}</span>
+              <span className="text-slate-400 font-medium">({product.reviews || 128} Reviews)</span>
+            </div>
+
+            <span className="text-slate-300">|</span>
+
+            <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+              <Flame className="h-4 w-4 text-[#ef4444] fill-[#ef4444]" />
+              <span><span className="font-bold text-[#ef4444]">{product.boughtCount || '349+'}</span> Bought this month</span>
+            </div>
+          </div>
+
+          {/* Price & Stock / SKU Row */}
+          <div className="flex items-center justify-between pt-1 pb-1 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl sm:text-4xl font-extrabold text-slate-900">
+                ₹{product.price.toLocaleString()}
+              </span>
+              {product.oldPrice && (
+                <span className="text-lg sm:text-xl text-slate-400 line-through font-medium">
+                  ₹{product.oldPrice.toLocaleString()}
+                </span>
+              )}
+              {discountPercentage > 0 && (
+                <span className="bg-[#fee2e2] text-[#ef4444] font-bold text-xs px-2.5 py-1 rounded-md">
+                  {discountPercentage}% OFF
+                </span>
+              )}
+            </div>
+
+            <div className="text-right space-y-0.5">
+              <div className="text-xs font-bold text-emerald-600 flex items-center justify-end gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                In Stock
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono font-medium">
+                SKU: {skuCode}
+              </div>
+            </div>
+          </div>
+
+          {/* Personalization Container */}
+          <div className="bg-[#faf5ff] border border-[#e9d5ff] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
+            <div className="flex items-center gap-2 text-[#5f259f] font-bold text-sm">
+              <Pencil className="h-4 w-4 text-[#5f259f]" />
+              <span>{product.personalizationTitle || 'Personalize Your Bottle'}</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 block">
+                {product.personalizationLabel || 'Name on Bottle *'}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  maxLength={maxChars}
                   value={personalizationName}
                   onChange={(e) => setPersonalizationName(e.target.value.toUpperCase())}
-                  className="h-12 rounded-xl border-none font-black tracking-widest text-xs bg-slate-50/50"
-                  maxLength={10}
+                  placeholder="e.g. TRISHA"
+                  className="w-full bg-white border border-[#d8b4fe] rounded-xl px-3.5 py-2.5 text-sm font-semibold tracking-wide text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#9333ea] pr-16 uppercase transition-all"
                 />
-             </div>
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">
+                  {personalizationName.length} / {maxChars}
+                </span>
+              </div>
+            </div>
+
+            {/* Dropdown Variant Selector */}
+            <div className="space-y-1.5">
+              <div className="relative">
+                <select
+                  value={selectedVariantOption}
+                  onChange={(e) => setSelectedVariantOption(e.target.value)}
+                  className="w-full bg-white border border-[#d8b4fe] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#9333ea] appearance-none pr-8 cursor-pointer transition-all"
+                >
+                  <option value="">• Please Select Font / Charm / Design •</option>
+                  {personalizationDropdownOptions.map((opt, i) => (
+                    <option key={i} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                  ▼
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Quantity Selector */}
-          <div className="flex items-center gap-4 py-1">
-             <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-100">
-                <button 
+          {/* Color & Capacity Selectors */}
+          <div className="grid grid-cols-2 gap-4 pt-1">
+            {/* Color Swatches */}
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-slate-700">
+                Colour: <span className="font-bold text-slate-900">{selectedColor || colors[0]?.name}</span>
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {colors.map((c) => {
+                  const isSelected = (selectedColor || colors[0]?.name) === c.name;
+                  return (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => setSelectedColor(c.name)}
+                      title={c.name}
+                      style={{ backgroundColor: c.hex }}
+                      className={cn(
+                        "w-8 h-8 rounded-full transition-transform shadow-sm relative",
+                        isSelected 
+                          ? "ring-2 ring-offset-2 ring-[#5f259f] scale-110" 
+                          : "hover:scale-105 opacity-90"
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Capacity Pills */}
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-slate-700">
+                Capacity:
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {capacities.map((cap) => {
+                  const isSelected = (selectedCapacity || capacities[0]) === cap;
+                  return (
+                    <button
+                      key={cap}
+                      type="button"
+                      onClick={() => setSelectedCapacity(cap)}
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                        isSelected
+                          ? "border-[#5f259f] bg-[#f5e6fb] text-[#5f259f] shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      )}
+                    >
+                      {cap}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Quantity & CTA Buttons */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-3">
+              {/* Quantity Counter */}
+              <div className="flex items-center border border-slate-200 rounded-xl bg-white px-2 py-1 shrink-0">
+                <button
+                  type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="p-3 text-slate-400 hover:text-[#0ea5e9]"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 transition-colors"
+                  aria-label="Decrease quantity"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className="h-3.5 w-3.5" />
                 </button>
-                <span className="w-10 text-center font-black text-slate-800 text-sm">{quantity}</span>
-                <button 
+                <span className="w-8 text-center text-sm font-bold text-slate-900">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="p-3 text-slate-400 hover:text-[#0ea5e9]"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 transition-colors"
+                  aria-label="Increase quantity"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
-             </div>
-          </div>
+              </div>
 
-          {/* Desktop Only Buttons - Hidden on Mobile because of Sticky Bar */}
-          <div className="hidden lg:flex flex-col gap-5">
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl blur opacity-25 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 pointer-events-none"></div>
-              <Button 
-                onClick={handleBuyNow} 
+              {/* Buy Now Gradient Button */}
+              <Button
+                type="button"
+                onClick={handleBuyNow}
                 disabled={isProcessing}
-                className="w-full h-20 rounded-2xl bg-gradient-to-r from-[#9333EA] to-[#DB2777] hover:from-[#a855f7] hover:to-[#ec4899] text-white hover:text-white font-black uppercase tracking-[0.2em] text-lg shadow-2xl relative overflow-hidden flex items-center justify-center gap-4 animate-buy-now border-4 border-white/20"
+                className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#5f259f] via-[#7c3aed] to-[#ec4899] hover:from-[#4a1b7e] hover:to-[#db2777] text-white font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 border border-white/20"
               >
                 {isProcessing ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    <ChevronsLeft className="h-6 w-6 opacity-80" />
+                    <Zap className="h-4 w-4 fill-white" />
                     <span>BUY NOW</span>
-                    <ChevronsRight className="h-6 w-6 opacity-80" />
+                    <ChevronRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
-            </motion.div>
+            </div>
 
-            <div className="flex gap-4">
-              <Button 
-                onClick={handleAddToCart} 
-                variant="ghost" 
-                className="flex-1 h-12 text-slate-600 font-black uppercase tracking-[0.15em] text-xs gap-3 hover:bg-slate-50 transition-all border border-slate-100 rounded-2xl"
-              >
-                <ShoppingCart className="h-4 w-4" /> ADD TO CART
-              </Button>
+            {/* Add to Cart & Wishlist Row */}
+            <div className="flex items-center gap-3">
               <Button
+                type="button"
+                onClick={handleAddToCart}
+                variant="outline"
+                className="flex-1 h-11 rounded-xl border-2 border-slate-200 hover:border-[#5f259f] hover:bg-[#faf5ff] text-slate-800 hover:text-[#5f259f] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              >
+                <ShoppingCart className="h-4 w-4 text-[#5f259f]" />
+                <span>ADD TO CART</span>
+              </Button>
+
+              <Button
+                type="button"
                 onClick={handleToggleWishlist}
                 variant="outline"
+                aria-label="Toggle wishlist"
                 className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all shrink-0",
-                  isWishlisted 
-                    ? "border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600" 
-                    : "border-slate-100 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-500"
+                  "w-11 h-11 rounded-xl border-2 flex items-center justify-center transition-all shrink-0",
+                  isWishlisted
+                    ? "border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100"
+                    : "border-slate-200 bg-white text-slate-400 hover:text-rose-500 hover:border-rose-200"
                 )}
               >
-                <Heart className={cn("h-5 w-5", isWishlisted && "fill-rose-500")} />
+                <Heart className={cn("h-5 w-5", isWishlisted && "fill-rose-500 text-rose-500")} />
               </Button>
             </div>
           </div>
+
+          {/* Estimated Delivery Box */}
+          <div className="bg-[#faf5ff] border border-purple-100 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white border border-purple-200 flex items-center justify-center text-[#5f259f] shrink-0">
+                <Truck className="h-5 w-5 text-[#5f259f]" />
+              </div>
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-slate-900">
+                  Estimated Delivery: {product.deliveryTime || '2 – 4 Days'}
+                </div>
+                <div className="text-[11px] text-slate-500 font-medium">
+                  Free shipping on orders above ₹999
+                </div>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-purple-400 shrink-0" />
+          </div>
+
+          {/* 5 Feature Badges (Grid) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
+              <Droplet className="h-5 w-5 text-[#5f259f]" />
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Leak-Proof Design</span>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
+              <Leaf className="h-5 w-5 text-[#5f259f]" />
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">BPA-Free & Safe</span>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
+              <Shield className="h-5 w-5 text-[#5f259f]" />
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Durable & Lightweight</span>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
+              <Thermometer className="h-5 w-5 text-[#5f259f]" />
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Keeps Drinks Fresh</span>
+            </div>
+            <div className="col-span-2 sm:col-span-1 bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
+              <Gift className="h-5 w-5 text-[#5f259f]" />
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Personalized with Name</span>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-4 sm:gap-6 border-b border-slate-200 overflow-x-auto scrollbar-hide text-xs sm:text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => setActiveTab('description')}
+                className={cn(
+                  "pb-2.5 border-b-2 transition-all whitespace-nowrap",
+                  activeTab === 'description'
+                    ? "border-[#5f259f] text-[#5f259f] font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Description
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('specifications')}
+                className={cn(
+                  "pb-2.5 border-b-2 transition-all whitespace-nowrap",
+                  activeTab === 'specifications'
+                    ? "border-[#5f259f] text-[#5f259f] font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Specifications
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('box')}
+                className={cn(
+                  "pb-2.5 border-b-2 transition-all whitespace-nowrap",
+                  activeTab === 'box'
+                    ? "border-[#5f259f] text-[#5f259f] font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                )}
+              >
+                What's in Box
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('care')}
+                className={cn(
+                  "pb-2.5 border-b-2 transition-all whitespace-nowrap",
+                  activeTab === 'care'
+                    ? "border-[#5f259f] text-[#5f259f] font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                )}
+              >
+                Care & Maintenance
+              </button>
+            </div>
+
+            {/* Tab Contents */}
+            <div className="py-4 space-y-4">
+              
+              {/* Tab 1: Description */}
+              {activeTab === 'description' && (
+                <div className="space-y-4 text-xs sm:text-sm">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm mb-1.5">Product Description</h3>
+                    <p className="text-slate-600 leading-relaxed font-normal">
+                      {product.description || 
+                        `Make hydration fun and personal! The GiftArtStudio ${product.name} is designed especially for kids with vibrant prints, a leak-proof cap and their own name on it. It's safe, durable and perfect for school, travel, sports or everyday use.`
+                      }
+                    </p>
+                  </div>
+
+                  {/* Highlights Card */}
+                  <div className="bg-[#faf5ff] border border-purple-100 rounded-2xl p-4 sm:p-5 space-y-2.5">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#5f259f]">
+                      <Sparkles className="h-4 w-4 text-[#9333ea]" />
+                      <span>Product Highlights</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {highlights.map((h, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
+                          <div className="w-4 h-4 rounded-full bg-[#9333ea] text-white flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="h-2.5 w-2.5" />
+                          </div>
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Specifications Card directly visible in Description view like the reference */}
+                  <div className="bg-white border border-purple-100 rounded-2xl p-4 sm:p-5 space-y-3 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <Layers className="h-4 w-4 text-[#5f259f]" />
+                      <span>Specifications</span>
+                    </div>
+                    <div className="divide-y divide-purple-50 text-xs sm:text-sm">
+                      {Object.entries(specifications).map(([key, value]) => (
+                        <div key={key} className="py-2 flex items-center justify-between gap-4">
+                          <span className="font-semibold text-slate-600 flex items-center gap-2">
+                            {key === 'Capacity' && <Milk className="h-3.5 w-3.5 text-[#5f259f]" />}
+                            {key === 'Material' && <Package className="h-3.5 w-3.5 text-[#5f259f]" />}
+                            {key === 'Weight' && <Scale className="h-3.5 w-3.5 text-[#5f259f]" />}
+                            {key === 'Dimensions' && <Ruler className="h-3.5 w-3.5 text-[#5f259f]" />}
+                            {key === 'Age Group' && <Users className="h-3.5 w-3.5 text-[#5f259f]" />}
+                            {key}
+                          </span>
+                          <span className="font-medium text-slate-800 text-right">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Specifications standalone */}
+              {activeTab === 'specifications' && (
+                <div className="bg-white border border-purple-100 rounded-2xl p-4 sm:p-5 space-y-3 shadow-2xs">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                    <Layers className="h-4 w-4 text-[#5f259f]" />
+                    <span>Specifications Overview</span>
+                  </div>
+                  <div className="divide-y divide-purple-50 text-xs sm:text-sm">
+                    {Object.entries(specifications).map(([key, value]) => (
+                      <div key={key} className="py-2.5 flex items-center justify-between gap-4">
+                        <span className="font-semibold text-slate-600 flex items-center gap-2">
+                          {key === 'Capacity' && <Milk className="h-4 w-4 text-[#5f259f]" />}
+                          {key === 'Material' && <Package className="h-4 w-4 text-[#5f259f]" />}
+                          {key === 'Weight' && <Scale className="h-4 w-4 text-[#5f259f]" />}
+                          {key === 'Dimensions' && <Ruler className="h-4 w-4 text-[#5f259f]" />}
+                          {key === 'Age Group' && <Users className="h-4 w-4 text-[#5f259f]" />}
+                          {key}
+                        </span>
+                        <span className="font-medium text-slate-800 text-right">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: What's in Box */}
+              {activeTab === 'box' && (
+                <div className="bg-[#faf5ff] border border-purple-100 rounded-2xl p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#5f259f]">
+                    <Package className="h-4 w-4 text-[#9333ea]" />
+                    <span>Included in the Package</span>
+                  </div>
+                  <ul className="space-y-2.5 text-xs sm:text-sm">
+                    {whatsInBox.map((item, i) => (
+                      <li key={i} className="flex items-center gap-2.5 text-slate-700 font-medium">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Tab 4: Care & Maintenance */}
+              {activeTab === 'care' && (
+                <div className="bg-[#faf5ff] border border-purple-100 rounded-2xl p-4 sm:p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#5f259f]">
+                    <Shield className="h-4 w-4 text-[#9333ea]" />
+                    <span>Care & Usage Instructions</span>
+                  </div>
+                  <ul className="space-y-2.5 text-xs sm:text-sm">
+                    {careInstructions.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-slate-700 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#9333ea] mt-1.5 shrink-0" />
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            </div>
+          </div>
+
         </div>
+
       </div>
 
+      {/* Video Reel Modal */}
       <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-black border-none rounded-[2.5rem] aspect-[9/16] shadow-2xl">
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-black border-none rounded-[2rem] aspect-[9/16] shadow-2xl">
           <DialogTitle className="sr-only">Product Reel</DialogTitle>
           <div className="relative h-full w-full">
             {product.videoUrl && (
@@ -426,35 +927,41 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Persistent Mobile Sticky CTA Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#FFF0F7]/95 backdrop-blur-xl border-t border-pink-100/80 p-4 pb-24 shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-3 max-w-md mx-auto">
-           <Button 
+      {/* Mobile Sticky Action Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-t border-purple-100 p-3 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center gap-2 max-w-md mx-auto">
+          <Button 
+            type="button"
             onClick={handleToggleWishlist}
             variant="outline"
+            aria-label="Wishlist"
             className={cn(
-              "w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0",
+              "w-12 h-12 rounded-xl border-2 flex items-center justify-center shrink-0 transition-colors",
               isWishlisted 
                 ? "border-rose-200 bg-rose-50 text-rose-500" 
-                : "border-slate-100 bg-white text-slate-400"
+                : "border-slate-200 bg-white text-slate-400"
             )}
-           >
-             <Heart className={cn("h-5 w-5", isWishlisted && "fill-rose-500")} />
-           </Button>
-           <Button 
+          >
+            <Heart className={cn("h-5 w-5", isWishlisted && "fill-rose-500 text-rose-500")} />
+          </Button>
+
+          <Button 
+            type="button"
             onClick={handleAddToCart}
             variant="outline"
-            className="flex-1 h-14 rounded-2xl border-2 border-sky-100 bg-sky-50 font-black text-[9px] uppercase tracking-widest text-sky-600 hover:bg-sky-100/80 transition-colors"
-           >
-             <ShoppingCart className="h-4 w-4 mr-2" /> Add To Cart
-           </Button>
-           <Button 
+            className="flex-1 h-12 rounded-xl border-2 border-slate-200 bg-white font-bold text-xs uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <ShoppingCart className="h-4 w-4 mr-1.5 text-[#5f259f]" /> Add
+          </Button>
+
+          <Button 
+            type="button"
             onClick={handleBuyNow}
             disabled={isProcessing}
-            className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-[#9333EA] to-[#DB2777] hover:from-[#a855f7] hover:to-[#ec4899] text-white hover:text-white font-black text-xs uppercase tracking-widest gap-2 animate-buy-now border-2 border-white/20"
-           >
-             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <>BUY NOW <ChevronsRight className="h-4 w-4" /></>}
-           </Button>
+            className="flex-[1.5] h-12 rounded-xl bg-gradient-to-r from-[#5f259f] via-[#7c3aed] to-[#ec4899] text-white font-black text-xs uppercase tracking-wider shadow-md border border-white/20"
+          >
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <>BUY NOW <ChevronRight className="h-4 w-4 ml-1" /></>}
+          </Button>
         </div>
       </div>
     </div>

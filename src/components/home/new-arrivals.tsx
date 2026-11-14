@@ -57,7 +57,24 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
           </header>
 
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-pink-500" /></div>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 lg:gap-12 max-w-7xl mx-auto pb-12">
+              {[0, 1, 2].map((idx) => (
+                <div 
+                  key={idx}
+                  className={cn(
+                    "w-full md:w-[28%] bg-white/90 backdrop-blur-sm rounded-[2.5rem] md:rounded-[3.5rem] shadow-xl p-4 border-4 border-white/80 animate-pulse flex flex-col gap-4",
+                    idx === 1 && "md:w-[30%] md:translate-y-8"
+                  )}
+                >
+                  <div className="w-full aspect-square rounded-[2rem] bg-gradient-to-br from-pink-100 to-purple-50" />
+                  <div className="space-y-2 p-2">
+                    <div className="h-4 w-3/4 bg-purple-100 rounded-full" />
+                    <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                    <div className="h-5 w-1/3 bg-pink-100 rounded-full mt-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : products && products.length > 0 ? (
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 lg:gap-12 max-w-7xl mx-auto pb-12">
               {products.map((p: any, i: number) => (

@@ -41,6 +41,7 @@ import { collection } from 'firebase/firestore';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { AnnouncementBar } from './announcement-bar';
+import TopBar from './top-bar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -204,22 +205,10 @@ const MobileNavItem = ({ item, pathname }: { item: any, pathname: string }) => {
 export function Navbar() {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
   
   const { cartCount } = useCart();
   const { user } = useUser();
   const auth = useAuth();
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const navItemClass = (href: string) => cn(
     "text-[11px] font-extrabold tracking-[0.1em] uppercase transition-all flex items-center gap-1.5 whitespace-nowrap py-2",
@@ -227,41 +216,15 @@ export function Navbar() {
   );
 
   return (
-<header className="fixed inset-x-0 top-0 z-[9999] overflow-visible">
-      <div className="lg:hidden">
-        <AnnouncementBar />
-      </div>
-      {/* Main Navbar Container with Custom Torn-Paper Background */}
-      <div
-  className={cn(
-    "relative w-full overflow-visible transition-all duration-300",
-    isDesktop ? "h-28 bg-transparent" : "h-24 bg-transparent"
-  )}
->
-        {/* Background Layer (Responsive Implementation) */}
-        {mounted && (
-  <div
-    className="absolute inset-0 overflow-visible -z-10 pointer-events-none"
-  >
-    <div
-      className={cn(
-        "absolute left-1/2 -translate-x-1/2",
-        isDesktop ? "-top-[120px]" : "-top-10"
-      )}
-      style={{
-        width: "100vw",
-        height: isDesktop ? "auto" : "175px",
-        aspectRatio: isDesktop ? "7476/1212" : "auto",
-        backgroundImage:
-          "url('https://rohanwakkar.sirv.com/website-Top-bar-.png')",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "top center",
-        backgroundSize: isDesktop ? "100% 100%" : "200vw 100%",
-      }}
-    />
-  </div>
-)}
-<div className="container mx-auto flex items-center justify-between h-20 lg:h-20 px-4 md:px-6 relative z-10 gap-4">
+    <header className="fixed inset-x-0 top-0 z-[9999] overflow-visible">
+      <AnnouncementBar />
+      <div className="relative w-full">
+        {/* Decorative Torn-Paper TopBar Background */}
+        <div className="absolute inset-0 -z-10 w-full h-full pointer-events-none drop-shadow-[0_4px_8px_rgba(0,0,0,0.06)]">
+          <TopBar color="#e9c9f2" borderColor="#ffffff" className="w-full h-full" />
+        </div>
+
+        <div className="container mx-auto flex items-center justify-between h-[84px] md:h-[90px] px-4 md:px-6 relative z-10 gap-4 pb-2.5">
           
           <div className="lg:hidden shrink-0">
             <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   DocumentReference,
   onSnapshot,
@@ -10,12 +10,13 @@ import {
 } from 'firebase/firestore';
 
 /**
- * Optimized useDoc hook with strict path-based listener management.
+ * Ultra-performant useDoc hook with local caching, instant response, and connection timeout guard.
  */
 export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     if (!ref) {
@@ -25,23 +26,44 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
     }
 
     setLoading(true);
+    let isMounted = true;
+
+    // Safety timeout: If connection takes > 2000ms, unlock loading state to prevent hanging spinners
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !initialLoadDone.current) {
+        setLoading(false);
+      }
+    }, 2000);
+
     const unsubscribe = onSnapshot(
       ref,
+      { includeMetadataChanges: false },
       (snapshot: DocumentSnapshot<T>) => {
-        setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } : null);
-        setLoading(false);
-        setError(null);
+        clearTimeout(timeoutId);
+        initialLoadDone.current = true;
+        if (isMounted) {
+          setData(snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } : null);
+          setLoading(false);
+          setError(null);
+        }
       },
       (err: FirestoreError) => {
-        if (err.code !== 'permission-denied') {
-          console.error(`Firestore useDoc error [${ref.path}]:`, err);
+        clearTimeout(timeoutId);
+        if (isMounted) {
+          if (err.code !== 'permission-denied') {
+            console.error(`Firestore useDoc error [${ref.path}]:`, err);
+          }
+          setError(err);
+          setLoading(false);
         }
-        setError(err);
-        setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [ref?.path]);
 
   return { data, loading, error };

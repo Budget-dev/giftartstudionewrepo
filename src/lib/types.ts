@@ -18,6 +18,7 @@ export interface ProductSEO {
 export interface Product {
   id: string;
   name: string;
+  subtitle?: string; // Short tagline under title
   description: string;
   price: number;
   oldPrice?: number;
@@ -30,6 +31,8 @@ export interface Product {
   subcategory: string;
   rating: number;
   reviews: number;
+  boughtCount?: string; // e.g. "349+"
+  sku?: string; // e.g. "GAS-WB-KIDS-001"
   isNew?: boolean;
   isBestSeller?: boolean;
   inventoryStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
@@ -37,8 +40,17 @@ export interface Product {
   couponDiscount?: number;
   colors?: { name: string; hex: string }[];
   sizes?: string[];
+  capacities?: string[]; // e.g. ['500 ml', '750 ml']
   features?: string[];
-  specifications?: Record<string, string>;
+  highlights?: string[]; // ✨ Product Highlights checklist
+  specifications?: Record<string, string>; // e.g. { Capacity: '500 ml / 750 ml', Material: '...', ... }
+  whatsInBox?: string[];
+  careInstructions?: string[];
+  personalizationTitle?: string; // e.g. "Personalize Your Bottle"
+  personalizationLabel?: string; // e.g. "Name on Bottle *"
+  personalizationMaxChars?: number; // e.g. 12
+  personalizationOptions?: string[]; // Dropdown variants (fonts, charms, etc.)
+  deliveryTime?: string; // e.g. "2 - 4 Days"
   createdAt?: any;
   updatedAt?: any;
   seo?: ProductSEO;
@@ -48,7 +60,9 @@ export interface CartItem extends Product {
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
+  selectedCapacity?: string;
   personalizationName?: string;
+  personalizationOption?: string;
 }
 
 export const CATEGORIES_MAP: Record<string, string[]> = {

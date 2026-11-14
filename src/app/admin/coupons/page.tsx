@@ -82,7 +82,15 @@ export default function CouponsPage() {
       <div className="grid lg:grid-cols-3 gap-8">
          <div className="lg:col-span-2 space-y-6">
             {loading ? (
-              <div className="py-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
+              <div className="grid md:grid-cols-2 gap-6 animate-pulse">
+                {[0, 1].map((i) => (
+                  <div key={i} className="rounded-[2.5rem] bg-white p-8 border border-slate-100 shadow-sm space-y-4">
+                    <div className="h-8 w-28 bg-indigo-100 rounded-2xl" />
+                    <div className="h-6 w-36 bg-slate-200 rounded-lg" />
+                    <div className="h-4 w-24 bg-slate-100 rounded-md" />
+                  </div>
+                ))}
+              </div>
             ) : coupons && coupons.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-6">
                 {coupons.map((cpn, i) => (

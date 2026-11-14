@@ -87,7 +87,15 @@ export default function SEOPage() {
   };
 
   if (loading) {
-    return <div className="h-96 flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-indigo-600" /></div>;
+    return (
+      <div className="space-y-8 animate-pulse">
+        <div className="space-y-2">
+          <div className="h-8 w-48 bg-slate-200 rounded-md" />
+          <div className="h-4 w-64 bg-slate-100 rounded-md" />
+        </div>
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-md h-96" />
+      </div>
+    );
   }
 
   return (

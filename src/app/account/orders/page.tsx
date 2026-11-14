@@ -48,7 +48,20 @@ export default function MyOrdersPage() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-sky-500" /></div>
+        <div className="space-y-6">
+          {[0, 1, 2].map((idx) => (
+            <div key={idx} className="rounded-[2.5rem] bg-white p-8 shadow-md border border-slate-100 animate-pulse flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-slate-200 rounded-md" />
+                  <div className="h-3 w-48 bg-slate-100 rounded-md" />
+                </div>
+              </div>
+              <div className="h-10 w-28 bg-slate-100 rounded-2xl" />
+            </div>
+          ))}
+        </div>
       ) : orders && orders.length > 0 ? (
         <div className="space-y-6">
           {orders.map((order) => (

@@ -119,8 +119,20 @@ export function BestSellers({ cms }: { cms?: any }) {
         <div className="absolute bottom-[5%] left-0 right-0 z-10 px-6">
           <div className="container mx-auto">
             {loading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="h-10 w-10 animate-spin text-sky-500" />
+              <div className="grid grid-cols-3 gap-6 lg:gap-12 max-w-6xl mx-auto w-full">
+                {[0, 1, 2].map((idx) => (
+                  <div 
+                    key={idx}
+                    className="rounded-[3rem] overflow-hidden shadow-2xl bg-white/95 backdrop-blur-sm p-4 border border-slate-100 animate-pulse flex flex-col gap-4"
+                  >
+                    <div className="aspect-square w-full rounded-t-[2.5rem] bg-gradient-to-br from-purple-100 to-pink-50" />
+                    <div className="space-y-2 p-2">
+                      <div className="h-4 w-3/4 bg-purple-100 rounded-full" />
+                      <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                      <div className="h-5 w-1/3 bg-purple-200 rounded-full mt-2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : products && products.length > 0 ? (
               <div className="grid grid-cols-3 gap-6 lg:gap-12 max-w-6xl mx-auto w-full">

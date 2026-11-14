@@ -83,7 +83,20 @@ export default function RTOPage() {
 
            <div className="space-y-4">
               {loading ? (
-                <div className="py-20 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
+                <div className="space-y-4 animate-pulse">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="rounded-[2.5rem] bg-white p-8 border border-slate-100 shadow-sm flex items-center justify-between gap-6">
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-slate-200 rounded-md" />
+                          <div className="h-3 w-48 bg-slate-100 rounded-md" />
+                        </div>
+                      </div>
+                      <div className="h-8 w-24 bg-slate-100 rounded-full" />
+                    </div>
+                  ))}
+                </div>
               ) : filteredCases && filteredCases.length > 0 ? (
                 filteredCases.map((rto: any) => (
                   <Card key={rto.id} className="border-none shadow-sm rounded-[2.5rem] bg-white group hover:shadow-xl transition-all duration-500 overflow-hidden">

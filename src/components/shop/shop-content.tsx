@@ -105,9 +105,18 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
 
   if (loading) {
     return (
-      <div className="py-32 flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-sky-500" />
-        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Opening Studio Catalog...</p>
+      <div className="space-y-8">
+        <div className="h-12 w-full max-w-md bg-slate-100 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => (
+            <div key={idx} className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-md space-y-4">
+              <div className="aspect-square w-full rounded-[1.5rem] bg-slate-100" />
+              <div className="h-4 w-3/4 bg-slate-200 rounded-full" />
+              <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+              <div className="h-5 w-1/3 bg-purple-100 rounded-full mt-2" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -206,18 +215,29 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
       </div>
 
       {/* Grid Content */}
-      <AnimatePresence mode="wait">
-        {displayedProducts.length > 0 ? (
-          <motion.div 
-            key={`${category}-${subcategory}-${view}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={cn(
-              "grid gap-8",
-              view === 'grid' ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-            )}
-          >
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-pulse">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-3 bg-white p-4 rounded-3xl border border-slate-100">
+              <div className="aspect-square rounded-2xl bg-slate-100" />
+              <div className="h-4 w-3/4 rounded-lg bg-slate-100" />
+              <div className="h-4 w-1/2 rounded-lg bg-slate-100" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <AnimatePresence mode="wait">
+          {displayedProducts.length > 0 ? (
+            <motion.div 
+              key={`${category}-${subcategory}-${view}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={cn(
+                "grid gap-8",
+                view === 'grid' ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
+              )}
+            >
             {displayedProducts.map((product) => (
               <div key={product.id} className="group relative">
                 {view === 'grid' ? (
@@ -338,6 +358,7 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
           </div>
         )}
       </AnimatePresence>
+      )}
 
       <ProductQuickView product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
     </div>

@@ -72,8 +72,20 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
       <div className="container mx-auto px-4 max-w-7xl relative">
         <div className="relative -mt-16 z-20 flex flex-col md:flex-row items-stretch justify-center gap-8 lg:gap-12 max-w-6xl mx-auto">
           {loading ? (
-            <div className="w-full py-20 flex justify-center bg-white/80 backdrop-blur-md rounded-[3rem] shadow-xl">
-              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 w-full max-w-6xl mx-auto">
+              {[0, 1, 2].map((idx) => (
+                <div 
+                  key={idx}
+                  className="w-full bg-white/95 rounded-[3rem] shadow-2xl p-4 border border-orange-100 animate-pulse flex flex-col gap-4"
+                >
+                  <div className="aspect-square w-full rounded-t-[2.5rem] bg-gradient-to-br from-amber-100 to-orange-50" />
+                  <div className="space-y-2 p-2">
+                    <div className="h-4 w-3/4 bg-amber-100 rounded-full" />
+                    <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                    <div className="h-5 w-1/3 bg-orange-200 rounded-full mt-2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : products && products.length > 0 ? (
             products.map((p: any, i: number) => (

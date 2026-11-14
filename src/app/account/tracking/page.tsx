@@ -51,7 +51,20 @@ export default function OrderTrackingPage() {
   }
 
   if (loading) {
-    return <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-indigo-600" /></div>;
+    return (
+      <div className="max-w-3xl mx-auto p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl space-y-8 animate-pulse">
+        <div className="h-6 w-48 bg-slate-200 rounded-md" />
+        <div className="grid grid-cols-4 gap-4 py-8">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col items-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-slate-100" />
+              <div className="h-3 w-16 bg-slate-200 rounded-md" />
+            </div>
+          ))}
+        </div>
+        <div className="h-24 w-full bg-slate-50 rounded-2xl" />
+      </div>
+    );
   }
 
   if (!order) {
