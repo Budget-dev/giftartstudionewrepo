@@ -37,7 +37,7 @@ export default function AboutPage() {
       <div className="container mx-auto px-4 py-8 md:py-14 max-w-6xl relative z-10">
         
         {/* Meet Rohan Section */}
-        <div className="grid md:grid-cols-2 gap-8 md:gap-14 items-center mb-10 md:mb-16">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center mb-6 md:mb-10">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -92,7 +92,7 @@ export default function AboutPage() {
           </motion.div>
         </div>
 
-        <WavySeparator className="my-8 md:my-12" />
+        <WavySeparator className="my-2 md:my-6" />
 
         {/* Philosophy Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mb-10 md:mb-16">

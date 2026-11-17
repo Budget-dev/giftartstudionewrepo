@@ -9,7 +9,7 @@ interface WavySeparatorProps {
 
 export function WavySeparator({ className, color = "animate-rainbow" }: WavySeparatorProps) {
   return (
-    <div className={cn("w-full overflow-hidden leading-none py-12", className)}>
+    <div className={cn("w-full overflow-hidden leading-none py-3 md:py-6", className)}>
       <svg
         viewBox="0 0 1200 20"
         fill="none"

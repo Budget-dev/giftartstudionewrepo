@@ -118,8 +118,282 @@ const CSS = `
 .gas-btn:focus-visible,.gas-skip:focus-visible{outline:2px solid #8a5c08;outline-offset:3px}
 .gas-skip{position:absolute;top:28px;right:30px;background:transparent;color:#8a6410;border:1px solid rgba(138,100,16,.5);border-radius:2px;padding:7px 16px;cursor:pointer;font:500 13px 'Cinzel',serif;letter-spacing:.15em;z-index:25}
 .gas-skip:hover{background:rgba(184,134,11,.12)}
+.gas-sound-btn{position:absolute;top:28px;right:110px;background:transparent;color:#8a6410;border:1px solid rgba(138,100,16,.5);border-radius:2px;padding:7px 14px;cursor:pointer;font:600 12px 'Cinzel',serif;letter-spacing:.12em;z-index:25;transition:all .2s;display:flex;align-items:center;gap:6px}
+.gas-sound-btn:hover{background:rgba(184,134,11,.12)}
 @media (prefers-reduced-motion:reduce){.gas-sc,.gas-hi span,.gas-en i{transition-duration:.01s}.gas-ribbon .gas-half{animation:none}}
 `;
+
+/**
+ * Web Audio Sound Synthesizer for Festive Cracker, Fireworks, Countdown, and Ceremony Sounds
+ */
+class CeremonySoundEngine {
+  private ctx: AudioContext | null = null;
+  public enabled: boolean = true;
+
+  public init() {
+    if (typeof window === 'undefined') return;
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
+  // 1. Scissor Cut Click
+  public playSnip() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const hp = ctx.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400, t);
+    osc.frequency.exponentialRampToValueAtTime(360, t + 0.08);
+
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(950, t);
+
+    gain.gain.setValueAtTime(0.42, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+    osc.connect(hp);
+    hp.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
+  // 2. Countdown Chime (3, 2, 1)
+  public playChime(pitch: number = 440) {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    [1, 2, 3, 4.2].forEach((ratio, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch * ratio, t);
+
+      const decay = 0.9 / (i + 1);
+      const amp = 0.28 / (i + 1);
+      gain.gain.setValueAtTime(amp, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + decay);
+    });
+  }
+
+  // 3. Rocket Launch Whoosh
+  public playRocketWhoosh() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    const len = Math.floor(ctx.sampleRate * 0.45);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(320, t);
+    filter.frequency.exponentialRampToValueAtTime(2600, t + 0.4);
+    filter.Q.setValueAtTime(3.5, t);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.01, t);
+    gain.gain.linearRampToValueAtTime(0.35, t + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.44);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.45);
+  }
+
+  // 4. Single Cracker Pop / Pataka
+  public playCrackerPop(delaySec: number = 0, pitchMod: number = 1, volume: number = 0.45) {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime + delaySec;
+
+    // Sharp noise snap
+    const len = Math.floor(ctx.sampleRate * 0.12);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400 * pitchMod, t);
+    filter.Q.setValueAtTime(2, t);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.12);
+
+    // Bass punch
+    const osc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180 * pitchMod, t);
+    osc.frequency.exponentialRampToValueAtTime(32, t + 0.09);
+
+    thudGain.gain.setValueAtTime(volume * 1.1, t);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+    osc.connect(thudGain);
+    thudGain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.11);
+  }
+
+  // 5. Firecracker String (Ladi / Rapid Fire Patakas)
+  public playCrackerString(count: number = 18, intervalMs: number = 70) {
+    if (!this.enabled) return;
+    for (let i = 0; i < count; i++) {
+      const jitter = (Math.random() * 26 - 13);
+      const delay = Math.max(0, (i * intervalMs + jitter) / 1000);
+      const pitch = 0.75 + Math.random() * 0.85;
+      const vol = 0.35 + Math.random() * 0.25;
+      this.playCrackerPop(delay, pitch, vol);
+    }
+  }
+
+  // 6. Grand Aerial Fireworks Blast (Boom + Crackle sparks)
+  public playGrandFirework() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    // Heavy Sub-Bass Boom
+    const osc = ctx.createOscillator();
+    const boomGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(24, t + 0.55);
+
+    boomGain.gain.setValueAtTime(0.75, t);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+
+    osc.connect(boomGain);
+    boomGain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.7);
+
+    // Sizzling burst
+    const len = Math.floor(ctx.sampleRate * 0.45);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 1.4);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(2100, t);
+    bp.Q.setValueAtTime(1.5, t);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.4, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.48);
+
+    noise.connect(bp);
+    bp.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.5);
+
+    // Trailing sparks crackle
+    for (let i = 0; i < 6; i++) {
+      const sparkDelay = 0.08 + i * 0.06 + Math.random() * 0.03;
+      this.playCrackerPop(sparkDelay, 1.3 + Math.random() * 0.7, 0.25);
+    }
+  }
+
+  // 7. Divine Celebratory Golden Chords (Jai Shankar reveal)
+  public playCelebrationFanfare() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    const notes = [261.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.07);
+
+      const noteStart = t + idx * 0.07;
+      gain.gain.setValueAtTime(0.001, noteStart);
+      gain.gain.linearRampToValueAtTime(0.16 / (idx + 1), noteStart + 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 2.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(noteStart);
+      osc.stop(noteStart + 2.6);
+    });
+  }
+
+  public destroy() {
+    if (this.ctx && this.ctx.state !== 'closed') {
+      try {
+        this.ctx.close();
+      } catch (e) {}
+    }
+    this.ctx = null;
+  }
+}
 
 const LETTERS = 'JAI SHANKAR'.split('');
 
@@ -132,6 +406,8 @@ export default function GrandOpeningOverlay({
 }: GrandOpeningOverlayProps) {
   const [active, setActive] = useState(true);
   const [hasCut, setHasCut] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const soundRef = useRef<CeremonySoundEngine | null>(null);
   const closeRef = useRef<(() => void) | null>(null);
   const triggerCutRef = useRef<(() => void) | null>(null);
 
@@ -196,6 +472,11 @@ export default function GrandOpeningOverlay({
     const timers: any[] = [];
     const prevOverflow = document.documentElement.style.overflow;
 
+    if (!soundRef.current) {
+      soundRef.current = new CeremonySoundEngine();
+    }
+    const sound = soundRef.current;
+
     const size = () => {
       W = window.innerWidth;
       H = window.innerHeight;
@@ -210,6 +491,7 @@ export default function GrandOpeningOverlay({
     const add = (x: number, y: number, vx: number, vy: number, o?: any) => {
       P.push(Object.assign({ x, y, px: x, py: y, vx, vy, l: 1, d: .012, g: .04, f: .985, h: 40, s: 92, w: 1.8, tw: 0, k: 0 }, o));
     };
+    let lastBurstSound = 0;
     const burst = (x: number, y: number, type?: string) => {
       const hue = HUES[(R() * HUES.length) | 0];
       const n = type === 'willow' ? 120 : type === 'ring' ? 80 : 150;
@@ -222,8 +504,22 @@ export default function GrandOpeningOverlay({
         else add(x, y, Math.cos(a) * s, Math.sin(a) * s, { h: hue + R() * 14, d: .010 + R() * .008, g: .045, f: .972, tw: R() < .45 ? 1 : 0 });
       }
       for (let i = 0; i < 3; i++) add(x + (R() - .5) * 30, y + (R() - .5) * 30, (R() - .5) * .6, -.15, { k: 3, d: .004, w: 26 + R() * 20, g: -.002, f: .995 });
+
+      if (auto && sound && Date.now() - lastBurstSound > 220) {
+        lastBurstSound = Date.now();
+        if (type === 'willow' || R() < 0.4) {
+          sound.playGrandFirework();
+        } else {
+          sound.playCrackerPop(0, 0.85 + R() * 0.7, 0.35);
+        }
+      }
     };
-    const launch = (x?: number) => RK.push({ x: x || W * (.12 + R() * .76), y: H + 10, vy: -(10 + R() * 4.5), ty: H * (.1 + R() * .3), t: ['peony', 'peony', 'ring', 'willow'][(R() * 4) | 0] });
+    const launch = (x?: number) => {
+      if (sound && auto && R() < 0.3) {
+        sound.playRocketWhoosh();
+      }
+      RK.push({ x: x || W * (.12 + R() * .76), y: H + 10, vy: -(10 + R() * 4.5), ty: H * (.1 + R() * .3), t: ['peony', 'peony', 'ring', 'willow'][(R() * 4) | 0] });
+    };
     const fountain = (x: number, n: number) => {
       for (let i = 0; i < n; i++) {
         const a = -Math.PI / 2 + (R() - .5) * .7, s = 8 + R() * 9;
@@ -310,14 +606,23 @@ export default function GrandOpeningOverlay({
 
       if (cutBtn) cutBtn.classList.add('hide');
 
-      // 1. Scissors snip
+      // 1. Scissors snip with sound effect
+      if (sound) {
+        sound.init();
+        sound.playSnip();
+      }
       sc.classList.add('snap');
 
-      // 2. The Cut
+      // 2. The Cut (Ribbon falls, flash, cracker string + rocket fireworks)
       at(450, () => {
         ribbon.classList.add('cut');
         top.style.opacity = '0';
         flash.classList.add('go');
+        if (sound) {
+          sound.playRocketWhoosh();
+          sound.playGrandFirework();
+          sound.playCrackerString(16, 60);
+        }
         fountain(W * .08, 120);
         fountain(W * .92, 120);
         fountain(W * .5, 80);
@@ -329,19 +634,40 @@ export default function GrandOpeningOverlay({
         sc.classList.add('gone');
       });
 
-      // 4. Countdown 3... 2... 1...
+      // 4. Countdown 3... 2... 1... with resonant golden chimes and whooshes
       at(1600, () => {
         cd.classList.add('vis');
+        if (sound) {
+          sound.playChime(440);
+          sound.playRocketWhoosh();
+        }
         tick(3);
       });
-      at(2700, () => tick(2));
-      at(3800, () => tick(1));
+      at(2700, () => {
+        if (sound) {
+          sound.playChime(554.37);
+          sound.playRocketWhoosh();
+        }
+        tick(2);
+      });
+      at(3800, () => {
+        if (sound) {
+          sound.playChime(659.25);
+          sound.playRocketWhoosh();
+        }
+        tick(1);
+      });
 
-      // 5. Celebration & जय शंकर
+      // 5. Celebration & जय शंकर (Divine fanfare + grand fireworks + continuous cracker ladi)
       at(4900, () => {
         cd.classList.remove('vis');
         nm.classList.add('go');
         auto = true;
+        if (sound) {
+          sound.playCelebrationFanfare();
+          sound.playGrandFirework();
+          sound.playCrackerString(28, 55);
+        }
         fountain(W * .08, 100);
         fountain(W * .92, 100);
         launch(W * .3);
@@ -378,6 +704,7 @@ export default function GrandOpeningOverlay({
       window.removeEventListener('keydown', onKey);
       if (mq.removeEventListener) mq.removeEventListener('change', onMq);
       document.documentElement.style.overflow = prevOverflow;
+      sound?.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, minWidth, storageKey]);
@@ -387,12 +714,32 @@ export default function GrandOpeningOverlay({
   const closeNow = () => closeRef.current && closeRef.current();
   const startCut = () => triggerCutRef.current && triggerCutRef.current();
 
+  const toggleSound = () => {
+    if (soundRef.current) {
+      soundRef.current.init();
+      const next = !soundRef.current.enabled;
+      soundRef.current.enabled = next;
+      setIsMuted(!next);
+      if (next) {
+        soundRef.current.playCrackerPop(0, 1.2, 0.35);
+      }
+    }
+  };
+
   return (
     <div id="gas-open" ref={r.root} role="dialog" aria-label="GiftArtStudio grand opening">
       <style>{CSS}</style>
       <canvas id="gas-fx" ref={r.cv} />
       <div className="gas-frame" />
       <div className="gas-flash" ref={r.flash} />
+      <button 
+        className="gas-sound-btn" 
+        type="button" 
+        onClick={toggleSound}
+        title={isMuted ? "Unmute Sound" : "Mute Sound"}
+      >
+        {isMuted ? "🔇 SOUND: OFF" : "🔊 SOUND: ON"}
+      </button>
       <button className="gas-skip" type="button" onClick={closeNow}>SKIP</button>
 
       <div className="gas-top" ref={r.top}>
