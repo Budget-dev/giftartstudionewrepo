@@ -21,8 +21,9 @@ export const ProductCard = memo(({ product }: ProductCardProps) => {
 
   return (
     <Link 
-      href={`/product/${product.id}`} 
-      prefetch={true}
+      href={`/product?id=${product.id}`} 
+      as={`/product/${product.id}`}
+      prefetch={false}
       onMouseEnter={() => cacheProduct(product)}
       onTouchStart={() => cacheProduct(product)}
       className="block h-full group"

@@ -12,6 +12,18 @@
     ],
     "rewrites": [
       {
+        "source": "/product/**",
+        "destination": "/product/index.html"
+      },
+      {
+        "source": "/category/**",
+        "destination": "/category/index.html"
+      },
+      {
+        "source": "/shop/**",
+        "destination": "/shop/index.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

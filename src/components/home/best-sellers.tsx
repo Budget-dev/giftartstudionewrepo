@@ -158,8 +158,9 @@ export function BestSellers({ cms }: { cms?: any }) {
                       )}
                     >
                       <Link 
-                        href={`/product/${p.id}`} 
-                        prefetch={true}
+                        href={`/product?id=${p.id}`} 
+                        as={`/product/${p.id}`}
+                        prefetch={false}
                         onMouseEnter={() => cacheProduct(p)}
                         onTouchStart={() => cacheProduct(p)}
                         className="flex flex-col h-full"

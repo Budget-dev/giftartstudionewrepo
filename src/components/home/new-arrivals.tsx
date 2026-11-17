@@ -126,8 +126,9 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                   )}
 
                   <Link 
-                    href={`/product/${p.id}`} 
-                    prefetch={true}
+                    href={`/product?id=${p.id}`} 
+                    as={`/product/${p.id}`}
+                    prefetch={false}
                     onMouseEnter={() => cacheProduct(p)}
                     onTouchStart={() => cacheProduct(p)}
                     className="block h-full rounded-[2.2rem] md:rounded-[3.2rem] overflow-hidden"

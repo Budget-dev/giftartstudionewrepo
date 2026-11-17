@@ -18,7 +18,11 @@ export function DynamicSEO() {
   // Detect if we are on a product page
   const productId = useMemo(() => {
     if (pathname.startsWith('/product/')) {
-      return pathname.split('/').pop();
+      const parts = pathname.split('/').filter(Boolean);
+      return parts[parts.length - 1];
+    }
+    if (pathname === '/product' && typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('id');
     }
     return null;
   }, [pathname]);

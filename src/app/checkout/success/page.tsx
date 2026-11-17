@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, ShoppingBag, ArrowRight, Star, Heart, Sparkles, MapPin, ShieldCheck, Truck } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, ArrowRight, Star, Heart, Sparkles, MapPin, ShieldCheck, Truck, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useCart } from '@/lib/store/cart-context';
@@ -19,6 +19,16 @@ function SuccessContent() {
   const paidAmount = searchParams.get('paid');
   const remainingCod = searchParams.get('remaining');
   const [orderId, setOrderId] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const textToCopy = `GiftArtStudio Order #${orderId}${paymentId ? `\nPayment Ref: ${paymentId}` : ''}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (orderParamId) {
@@ -67,12 +77,24 @@ function SuccessContent() {
            
            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 pb-6 border-b border-slate-50">
              <div className="space-y-1">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Reference</p>
-               <p className="text-xl font-black text-slate-800">{orderId}</p>
+               <div className="flex items-center gap-2">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Reference</p>
+                 <button
+                   type="button"
+                   onClick={handleCopy}
+                   className="text-[10px] font-bold text-[#5f259f] hover:underline flex items-center gap-1 cursor-pointer"
+                   title="Copy order details"
+                 >
+                   {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                   <span>{copied ? 'Copied' : 'Copy'}</span>
+                 </button>
+               </div>
+               <p className="text-xl font-black text-slate-800 tracking-wide">{orderId}</p>
                {paymentId && (
-                 <p className="text-[10px] font-mono font-bold text-slate-500">
-                   Payment ID: <span className="text-[#5f259f]">{paymentId}</span>
-                 </p>
+                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-bold mt-1">
+                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                   <span>Razorpay ID: {paymentId}</span>
+                 </div>
                )}
              </div>
              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">

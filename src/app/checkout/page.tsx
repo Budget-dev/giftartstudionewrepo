@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { useCart } from '@/lib/store/cart-context';
@@ -23,6 +23,9 @@ import {
   Lock,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
+  RotateCcw,
+  CheckCircle2,
   ExternalLink,
   ChevronRight
 } from 'lucide-react';
@@ -59,8 +62,17 @@ export default function CheckoutPage() {
   const [paymentError, setPaymentError] = useState<{
     failed: boolean;
     reason: string;
+    type?: 'cancelled' | 'failed' | 'error';
     paymentId?: string;
   } | null>(null);
+
+  const [paymentSuccessData, setPaymentSuccessData] = useState<{
+    paymentId: string;
+    amount: number;
+    paymentType: string;
+  } | null>(null);
+
+  const paymentFailureOccurredRef = useRef<boolean>(false);
 
   const [formData, setFormData] = useState<CheckoutFormData>({
     fullName: user?.displayName || '',
@@ -397,7 +409,7 @@ export default function CheckoutPage() {
         description: `Order #${orderRef.id.slice(-8).toUpperCase()} has been confirmed.`
       });
 
-      router.push(`/checkout/success?id=${orderRef.id}&payment=${orderInfo.paymentType}&paid=${orderInfo.paidAmount}&remaining=${orderInfo.balanceAmount}`);
+      router.push(`/checkout/success?id=${orderRef.id}&payment=${orderInfo.paymentType}&paid=${orderInfo.paidAmount}&remaining=${orderInfo.balanceAmount}&paymentId=${encodeURIComponent(orderInfo.transactionId)}`);
     } catch (err: any) {
       console.error("Order save error:", err);
       toast({
@@ -406,12 +418,14 @@ export default function CheckoutPage() {
         description: err.message || "Failed to record order. Please note your payment ID: " + orderInfo.transactionId
       });
       setIsProcessing(false);
+      setPaymentSuccessData(null);
     }
   };
 
   // Place Order Action (Direct Razorpay Client Standard Checkout or Instant COD)
   const handlePlaceOrder = async () => {
     if (!db) return;
+    paymentFailureOccurredRef.current = false;
     setPaymentError(null);
     setIsProcessing(true);
 
@@ -473,10 +487,19 @@ export default function CheckoutPage() {
         modal: {
           ondismiss: function () {
             setIsProcessing(false);
-            setPaymentError({
-              failed: true,
-              reason: "Payment window was closed before completion. Your delivery address and items in bag are saved.",
-            });
+            if (!paymentFailureOccurredRef.current) {
+              const msg = "Payment window was closed before completion. No money was deducted from your account. Please tap 'Try Paying Again' to complete your order, or choose Cash on Delivery.";
+              setPaymentError({
+                failed: true,
+                type: 'cancelled',
+                reason: msg,
+              });
+              toast({
+                variant: "destructive",
+                title: "Payment Cancelled / Incomplete",
+                description: "You closed the payment screen before completing payment. Please tap 'Try Paying Again' or switch to Cash on Delivery."
+              });
+            }
           }
         },
         handler: async function (response: any) {
@@ -489,6 +512,14 @@ export default function CheckoutPage() {
             setIsProcessing(false);
             return;
           }
+
+          // Catch and show immediate success overlay on the website
+          setPaymentSuccessData({
+            paymentId: response.razorpay_payment_id,
+            amount: amountToCharge,
+            paymentType: isFullPayment ? 'full' : 'cod_advance'
+          });
+          setIsProcessing(true);
 
           await completeAndSaveOrder({
             transactionId: response.razorpay_payment_id,
@@ -504,16 +535,18 @@ export default function CheckoutPage() {
       const rzpInstance = new window.Razorpay(options);
 
       rzpInstance.on('payment.failed', function (resp: any) {
+        paymentFailureOccurredRef.current = true;
         setIsProcessing(false);
         const reason = resp.error?.description || resp.error?.reason || "Payment was declined by your bank or UPI. Please try another card or UPI mode.";
         setPaymentError({
           failed: true,
-          reason,
+          type: 'failed',
+          reason: `${reason}. Please tap 'Try Paying Again' or switch to Cash on Delivery.`,
           paymentId: resp.error?.metadata?.payment_id
         });
         toast({
           variant: "destructive",
-          title: "Payment Declined",
+          title: "Payment Failed / Declined",
           description: reason
         });
       });
@@ -521,13 +554,96 @@ export default function CheckoutPage() {
       rzpInstance.open();
     } catch (err: any) {
       console.error("Razorpay initiation error:", err);
+      setIsProcessing(false);
+      setPaymentError({
+        failed: true,
+        type: 'error',
+        reason: err.message || "Could not launch Razorpay. Please verify details."
+      });
       toast({
         variant: "destructive",
-        title: "Payment Notice",
+        title: "Payment Gateway Error",
         description: err.message || "Could not launch Razorpay. Please verify details."
       });
-      setIsProcessing(false);
     }
+  };
+
+  const renderPaymentAlert = () => {
+    if (!paymentError || !paymentError.failed) return null;
+
+    const isCancelled = paymentError.type === 'cancelled';
+
+    return (
+      <div className={cn(
+        "p-4 sm:p-5 rounded-2xl border-2 space-y-3 transition-all animate-in fade-in slide-in-from-top-2 text-left",
+        isCancelled
+          ? "bg-amber-50/95 border-amber-300 text-amber-950 shadow-sm shadow-amber-200/50"
+          : "bg-rose-50/95 border-rose-300 text-rose-950 shadow-sm shadow-rose-200/50"
+      )}>
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+            isCancelled ? "bg-amber-200 text-amber-900" : "bg-rose-200 text-rose-900"
+          )}>
+            {isCancelled ? <AlertTriangle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-extrabold text-sm sm:text-base">
+                {isCancelled ? "Payment Cancelled / Incomplete" : "Payment Failed / Declined"}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setPaymentError(null)}
+                className="text-slate-400 hover:text-slate-700 text-lg leading-none p-1 font-bold"
+                aria-label="Dismiss alert"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-xs sm:text-sm mt-1 leading-relaxed opacity-90">
+              {paymentError.reason}
+            </p>
+            {paymentError.paymentId && (
+              <p className="text-[11px] font-mono font-bold mt-1 opacity-80">
+                Gateway Reference ID: {paymentError.paymentId}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Retry & Alternative Payment Actions */}
+        <div className="pt-2 border-t border-current/15 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            onClick={handlePlaceOrder}
+            className="rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white font-bold text-xs gap-1.5 shadow-md shadow-purple-600/20"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Try Paying Again
+          </Button>
+
+          {paymentMethod !== 'cod_pure' && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPaymentMethod('cod_pure');
+                setPaymentError(null);
+                toast({
+                  title: "Switched to Cash on Delivery",
+                  description: `Pay ₹${total.toLocaleString()} in cash when order arrives. Zero online payment required.`
+                });
+              }}
+              className="rounded-xl border-slate-300 hover:bg-white text-slate-800 font-bold text-xs gap-1.5"
+            >
+              <PackageCheck className="h-3.5 w-3.5 text-purple-600" /> Switch to Pure COD (Pay on Delivery)
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   if (cart.length === 0 && !isProcessing) {
@@ -798,6 +914,9 @@ export default function CheckoutPage() {
                   </Button>
                 </div>
 
+                {/* Top Payment Notice / Decline Retry Box */}
+                {renderPaymentAlert()}
+
                 {/* 3 Clear, Responsive Payment Options */}
                 <div className="space-y-3.5">
 
@@ -924,17 +1043,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* In-Page Payment Notice / Decline Retry Box */}
-                {paymentError && paymentError.failed && (
-                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 space-y-2 text-left">
-                    <div className="flex items-start gap-2.5">
-                      <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-xs font-bold text-rose-900">Payment Notice</h4>
-                        <p className="text-xs text-rose-700 mt-0.5 leading-relaxed">{paymentError.reason}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {renderPaymentAlert()}
 
                 {/* Safe Transaction Note */}
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-2.5 text-xs text-slate-600">
@@ -1044,6 +1153,31 @@ export default function CheckoutPage() {
         </div>
 
       </div>
+
+      {/* Fullscreen Overlay when payment succeeded and order is being generated */}
+      {paymentSuccessData && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="h-10 w-10 animate-bounce" />
+            </div>
+            <div>
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-black uppercase tracking-wider rounded-full border border-emerald-200">
+                Payment Verified
+              </span>
+              <h3 className="text-xl font-black text-slate-900 mt-2">Payment Received Successfully!</h3>
+              <p className="text-xs text-slate-500 font-mono mt-1">
+                Razorpay ID: <span className="font-bold text-purple-700">{paymentSuccessData.paymentId}</span>
+              </p>
+            </div>
+
+            <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-center gap-3 text-xs font-semibold text-purple-800">
+              <Loader2 className="h-5 w-5 animate-spin text-purple-600 shrink-0" />
+              <span className="text-left">Generating your order and saving confirmation... Please do not close this window.</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>

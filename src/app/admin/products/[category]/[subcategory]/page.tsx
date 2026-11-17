@@ -229,7 +229,8 @@ export default function SubcategoryProductsPage({ params }: { params: Promise<{ 
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
-                            href={`/product/${p.id}`}
+                            href={`/product?id=${p.id}`}
+                            as={`/product/${p.id}`}
                             target="_blank"
                             className="p-1.5 text-slate-400 hover:text-purple-600 rounded-lg hover:bg-slate-100 transition-colors"
                             title="View on Store"

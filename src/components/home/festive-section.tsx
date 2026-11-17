@@ -107,8 +107,9 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
                 className="w-full md:flex-1 bg-[#EA580C] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col group cursor-pointer"
               >
                 <Link 
-                  href={`/product/${p.id}`} 
-                  prefetch={true}
+                  href={`/product?id=${p.id}`} 
+                  as={`/product/${p.id}`}
+                  prefetch={false}
                   onMouseEnter={() => cacheProduct(p)}
                   onTouchStart={() => cacheProduct(p)}
                   className="flex flex-col h-full"

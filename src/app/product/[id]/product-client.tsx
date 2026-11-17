@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import ReactDOM from 'react-dom';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
@@ -44,12 +45,52 @@ function ProductDetailsSkeleton() {
   );
 }
 
-export default function ProductClient({ id }: { id: string }) {
+export default function ProductClient({ id: propId }: { id?: string }) {
   const db = useFirestore();
+  const params = useParams();
+  const searchParams = useSearchParams();
   const [showRelated, setShowRelated] = useState(false);
+
+  const [resolvedId, setResolvedId] = useState<string>(() => {
+    if (propId) return propId;
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('id');
+      if (q) return q;
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last && last !== 'product') return last;
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    if (propId) {
+      setResolvedId(propId);
+      return;
+    }
+    const qId = searchParams?.get('id');
+    if (qId) {
+      setResolvedId(qId);
+      return;
+    }
+    const paramId = params?.id as string;
+    if (paramId) {
+      setResolvedId(paramId);
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last && last !== 'product') {
+        setResolvedId(last);
+      }
+    }
+  }, [propId, params, searchParams]);
+
+  const id = resolvedId;
   
-  const cachedProduct = useMemo(() => getCachedProduct(id), [id]);
-  const productRef = useMemo(() => db ? doc(db, 'products', id) : null, [db, id]);
+  const cachedProduct = useMemo(() => id ? getCachedProduct(id) : null, [id]);
+  const productRef = useMemo(() => (db && id) ? doc(db, 'products', id) : null, [db, id]);
   const { data: product, loading } = useDoc<any>(productRef, cachedProduct);
 
   const heroImage = product?.image || cachedProduct?.image;

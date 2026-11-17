@@ -121,8 +121,9 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
                     {group.map((p: any) => (
                       <Link 
                         key={p.id} 
-                        href={`/product/${p.id}`} 
-                        prefetch={true}
+                        href={`/product?id=${p.id}`} 
+                        as={`/product/${p.id}`}
+                        prefetch={false}
                         onMouseEnter={() => cacheProduct(p)}
                         onTouchStart={() => cacheProduct(p)}
                         className="block"

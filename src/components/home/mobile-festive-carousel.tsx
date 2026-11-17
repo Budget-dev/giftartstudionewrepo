@@ -116,8 +116,9 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
                 {products.map((p: any) => (
                   <div key={p.id} className="flex-[0_0_calc((100%-16px)/3)] min-w-0">
                     <Link 
-                      href={`/product/${p.id}`} 
-                      prefetch={true}
+                      href={`/product?id=${p.id}`} 
+                      as={`/product/${p.id}`}
+                      prefetch={false}
                       onMouseEnter={() => cacheProduct(p)}
                       onTouchStart={() => cacheProduct(p)}
                       className="block h-full"
