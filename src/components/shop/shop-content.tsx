@@ -1,23 +1,16 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LayoutGrid, List, SlidersHorizontal, Search, Package, Eye, Heart, Loader2, Star } from 'lucide-react';
+import { LayoutGrid, List, SlidersHorizontal, Search, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProductCard } from '@/components/product-card';
 import { Product } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useCart } from '@/lib/store/cart-context';
-import { useToast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ProductQuickView } from './product-quick-view';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { cacheProduct, cacheProducts } from '@/lib/product-cache';
+import { cacheProducts } from '@/lib/product-cache';
+import Link from 'next/link';
 
 interface ShopContentProps {
   category?: string;
@@ -28,17 +21,12 @@ interface ShopContentProps {
 export function ShopContent({ category, subcategory, onOpenFilters }: ShopContentProps) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sort, setSort] = useState('featured');
-  const [itemsPerPage, setItemsPerPage] = useState('20');
   const [searchQuery, setSearchBar] = useState('');
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const db = useFirestore();
   const searchParams = useSearchParams();
 
-  // Safe memoization of collection reference
   const productsCol = useMemo(() => db ? collection(db, 'products') : null, [db]);
-
-  // Fetch all products from Firestore
   const { data: allProducts, loading } = useCollection<any>(productsCol);
 
   useEffect(() => {
@@ -47,337 +35,249 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
     }
   }, [allProducts]);
 
-  // Filter Logic applied to live Firestore data
+  // Robust, forgiving matching logic
   const filteredProducts = useMemo(() => {
-    if (!allProducts) return [];
+    if (!allProducts || allProducts.length === 0) return [];
     let result = [...allProducts];
 
-    // 1. Path filtering
-    if (category && category !== 'new') {
-      result = result.filter(p => p.category?.toLowerCase() === category.toLowerCase());
-    }
-
+    // Subcategory matching
     if (subcategory) {
-      // Special logic for "new" collection landing pages
-      if (category === 'new') {
-        if (subcategory === 'best-sellers') {
-          result = result.filter(p => p.isBestSeller === true || p.subcategory === 'best-sellers');
-        } else if (subcategory === 'new-collection') {
-          result = result.filter(p => p.subcategory === 'new-collection');
-        } else if (subcategory === 'new-launch') {
-          result = result.filter(p => p.subcategory === 'new-launch');
-        } else if (subcategory === 'festive') {
-          result = result.filter(p => p.subcategory === 'festive');
-        } else {
-          result = result.filter(p => p.subcategory?.toLowerCase() === subcategory.toLowerCase());
-        }
+      const sub = subcategory.toLowerCase();
+      if (sub.includes('bottle')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('bottle') || 
+          p.name?.toLowerCase().includes('bottle') ||
+          p.title?.toLowerCase().includes('bottle')
+        );
+      } else if (sub.includes('mug')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('mug') || 
+          p.name?.toLowerCase().includes('mug') ||
+          p.title?.toLowerCase().includes('mug')
+        );
+      } else if (sub.includes('bag')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('bag') || 
+          p.name?.toLowerCase().includes('bag') ||
+          p.title?.toLowerCase().includes('bag')
+        );
+      } else if (sub.includes('umbrella')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('umbrella') || 
+          p.name?.toLowerCase().includes('umbrella') ||
+          p.title?.toLowerCase().includes('umbrella')
+        );
+      } else if (sub.includes('combo')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('combo') || 
+          p.name?.toLowerCase().includes('combo') ||
+          p.title?.toLowerCase().includes('combo')
+        );
+      } else if (sub.includes('stationery') || sub.includes('planner')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('stationery') || 
+          p.subcategory?.toLowerCase().includes('planner') || 
+          p.name?.toLowerCase().includes('planner') ||
+          p.name?.toLowerCase().includes('stationery')
+        );
+      } else if (sub.includes('lunch')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('lunch') || 
+          p.name?.toLowerCase().includes('lunch')
+        );
+      } else if (sub.includes('passport')) {
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('passport') || 
+          p.name?.toLowerCase().includes('passport')
+        );
+      } else if (sub.includes('best-seller')) {
+        result = result.filter(p => p.isBestSeller === true || p.subcategory === 'best-sellers');
+      } else if (sub.includes('festive')) {
+        result = result.filter(p => p.subcategory === 'festive' || p.category === 'festive');
       } else {
-        result = result.filter(p => p.subcategory?.toLowerCase() === subcategory.toLowerCase());
+        result = result.filter(p => 
+          p.subcategory?.toLowerCase() === sub ||
+          p.subcategory?.toLowerCase().replace(/-/g, ' ') === sub.replace(/-/g, ' ') ||
+          p.category?.toLowerCase() === category?.toLowerCase()
+        );
+      }
+    } else if (category && category !== 'all') {
+      const cat = category.toLowerCase();
+      if (cat === 'new') {
+        result = result.filter(p => p.category === 'new' || p.isNew === true || p.isBestSeller === true);
+      } else if (cat.includes('personali')) {
+        result = result.filter(p => 
+          p.category?.toLowerCase().includes('personali') || 
+          p.isPersonalized === true ||
+          p.name?.toLowerCase().includes('personal') ||
+          p.title?.toLowerCase().includes('personal')
+        );
+        // If specific personalized tag returned nothing, show all non-empty catalog items
+        if (result.length === 0) result = [...allProducts];
+      } else {
+        result = result.filter(p => 
+          p.category?.toLowerCase() === cat || 
+          p.category?.toLowerCase().replace(/-/g, ' ') === cat.replace(/-/g, ' ') ||
+          p.category?.toLowerCase().includes(cat)
+        );
       }
     }
 
-    // 2. URL Search Params filtering
-    const minPrice = Number(searchParams.get('minPrice')) || 0;
-    const maxPrice = Number(searchParams.get('maxPrice')) || 10000;
-    const rating = Number(searchParams.get('rating')) || 0;
-
-    result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
-    if (rating > 0) result = result.filter(p => p.rating >= rating);
-
-    // 3. Search query filtering
-    if (searchQuery) {
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    // Keyword search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q))
       );
     }
 
-    // 4. Sorting
-    if (sort === 'low-high') result.sort((a, b) => a.price - b.price);
-    if (sort === 'high-low') result.sort((a, b) => b.price - a.price);
-    if (sort === 'newest' || sort === 'date-new') result.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? -1 : 1));
-    if (sort === 'date-old') result.sort((a, b) => (a.isNew === b.isNew ? 0 : a.isNew ? 1 : -1));
-    if (sort === 'alpha-asc') result.sort((a, b) => a.name.localeCompare(b.name));
-    if (sort === 'alpha-desc') result.sort((a, b) => b.name.localeCompare(a.name));
-    if (sort === 'best-selling') result.sort((a, b) => (a.isBestSeller === b.isBestSeller ? 0 : a.isBestSeller ? -1 : 1));
+    // Price sorting
+    if (sort === 'price-low') {
+      result.sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sort === 'price-high') {
+      result.sort((a, b) => (b.price || 0) - (a.price || 0));
+    } else if (sort === 'rating') {
+      result.sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5));
+    }
 
     return result;
-  }, [allProducts, category, subcategory, searchQuery, sort, searchParams]);
+  }, [allProducts, category, subcategory, searchQuery, sort]);
 
-  // Slices items per page dynamically
-  const displayedProducts = useMemo(() => {
-    const limitNum = itemsPerPage === 'all' ? filteredProducts.length : Number(itemsPerPage);
-    return filteredProducts.slice(0, limitNum);
-  }, [filteredProducts, itemsPerPage]);
-
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <div className="h-12 w-full max-w-md bg-slate-100 rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((idx) => (
-            <div key={idx} className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-md space-y-4">
-              <div className="aspect-square w-full rounded-[1.5rem] bg-slate-100" />
-              <div className="h-4 w-3/4 bg-slate-200 rounded-full" />
-              <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
-              <div className="h-5 w-1/3 bg-purple-100 rounded-full mt-2" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Fallback to all products if specific query has 0 items
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : (allProducts || []);
+  const isShowingFallback = filteredProducts.length === 0 && allProducts && allProducts.length > 0;
 
   return (
-    <div className="space-y-8">
-      {/* Search & Tool Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-sky-500 transition-colors" />
-          <input
-            type="text"
-            placeholder="Search in this collection..."
-            value={searchQuery}
-            onChange={(e) => setSearchBar(e.target.value)}
-            className="w-full bg-white border border-slate-100 h-12 pl-12 pr-4 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-sky-500/5 focus:border-sky-500/50 shadow-sm transition-all"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+    <div className="space-y-6">
+      {/* Top Controls Bar */}
+      <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Left: Count & Filter Button */}
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
           <Button
             variant="outline"
             size="sm"
-            className="lg:hidden h-12 rounded-xl border-slate-100 bg-white font-black text-[10px] uppercase tracking-widest gap-2"
             onClick={onOpenFilters}
+            className="lg:hidden rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold gap-1.5"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" /> Filter
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Filters
           </Button>
 
-          {/* Items Per Page Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider whitespace-nowrap">
-              ITEMS PER PAGE
-            </span>
-            <Select value={itemsPerPage} onValueChange={setItemsPerPage}>
-              <SelectTrigger className="w-[80px] h-12 rounded-2xl border-slate-100 bg-white font-bold text-xs shadow-sm">
-                <SelectValue placeholder="20" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-slate-100">
-                <SelectItem value="12">12</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="36">36</SelectItem>
-                <SelectItem value="all">All</SelectItem>
-              </SelectContent>
-            </Select>
+          <span className="text-xs font-medium text-slate-500">
+            Showing <strong className="text-slate-800 dark:text-white font-bold">{displayProducts.length}</strong> items
+          </span>
+        </div>
+
+        {/* Right: Search & Sort */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-56">
+            <input
+              type="text"
+              placeholder="Search in collection..."
+              value={searchQuery}
+              onChange={(e) => setSearchBar(e.target.value)}
+              className="w-full text-xs h-9 pl-8 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 focus:ring-purple-600"
+            />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
           </div>
 
-          {/* Sort By Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider whitespace-nowrap">
-              SORT BY
-            </span>
-            <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-[180px] h-12 rounded-2xl border-slate-100 bg-white font-bold text-xs shadow-sm">
-                <SelectValue placeholder="Best selling" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-slate-100">
-                <SelectItem value="featured">Featured</SelectItem>
-                <SelectItem value="best-selling">Best selling</SelectItem>
-                <SelectItem value="alpha-asc">Alphabetically, A-Z</SelectItem>
-                <SelectItem value="alpha-desc">Alphabetically, Z-A</SelectItem>
-                <SelectItem value="low-high">Price, low to high</SelectItem>
-                <SelectItem value="high-low">Price, high to low</SelectItem>
-                <SelectItem value="date-new">Date, new to old</SelectItem>
-                <SelectItem value="date-old">Date, old to new</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger className="w-36 h-9 rounded-xl text-xs font-medium border-slate-200 dark:border-slate-700">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="featured">Featured</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Top Rated</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div className="flex items-center gap-1 border border-slate-100 rounded-2xl p-1 bg-white shadow-sm">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-10 w-10 rounded-xl transition-all", view === 'grid' ? "bg-sky-50 text-sky-600 shadow-inner" : "text-slate-300")}
+          {/* View toggle */}
+          <div className="hidden sm:flex items-center gap-1 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-white dark:bg-slate-800">
+            <button
               onClick={() => setView('grid')}
+              className={`p-1.5 rounded-lg transition-colors ${view === 'grid' ? 'bg-purple-100 text-purple-700 dark:bg-slate-700 dark:text-purple-300' : 'text-slate-400'}`}
+              title="Grid View"
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-10 w-10 rounded-xl transition-all", view === 'list' ? "bg-sky-50 text-sky-600 shadow-inner" : "text-slate-300")}
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setView('list')}
+              className={`p-1.5 rounded-lg transition-colors ${view === 'list' ? 'bg-purple-100 text-purple-700 dark:bg-slate-700 dark:text-purple-300' : 'text-slate-400'}`}
+              title="List View"
             >
-              <List className="h-4 w-4" />
-            </Button>
+              <List className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Package className="h-4 w-4 text-slate-300" />
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-          Displaying <span className="text-slate-800">{filteredProducts.length}</span> Magical Handcrafted Items
-        </p>
-      </div>
+      {/* Fallback Notice */}
+      {isShowingFallback && (
+        <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50 flex items-center justify-between">
+          <p className="text-xs text-purple-800 dark:text-purple-300 font-medium">
+            No exact matches found for &quot;{subcategory || category}&quot;. Showing our most popular gifts below:
+          </p>
+          <Link href="/collections" className="text-xs font-bold text-purple-600 hover:underline shrink-0 ml-4">
+            View All Collections →
+          </Link>
+        </div>
+      )}
 
-      {/* Grid Content */}
+      {/* Product Grid / Loading State */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-pulse">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="space-y-3 bg-white p-4 rounded-3xl border border-slate-100">
-              <div className="aspect-square rounded-2xl bg-slate-100" />
-              <div className="h-4 w-3/4 rounded-lg bg-slate-100" />
-              <div className="h-4 w-1/2 rounded-lg bg-slate-100" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 animate-pulse bg-white dark:bg-slate-900">
+              <div className="aspect-square bg-slate-100 dark:bg-slate-800 rounded-xl" />
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+              <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+              <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl mt-2" />
             </div>
           ))}
         </div>
+      ) : displayProducts.length > 0 ? (
+        <div className={view === 'grid' 
+          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" 
+          : "flex flex-col gap-4"
+        }>
+          {displayProducts.map((prod: any) => (
+            <ProductCard 
+              key={prod.id} 
+              product={{
+                id: prod.id,
+                name: prod.name || prod.title || 'Gift Item',
+                title: prod.title || prod.name || 'Gift Item',
+                price: prod.price || 499,
+                originalPrice: prod.originalPrice || prod.price ? Math.round((prod.price || 499) * 1.3) : 699,
+                image: prod.image || prod.imageUrl || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&auto=format&fit=crop&q=80',
+                imageUrl: prod.imageUrl || prod.image,
+                category: prod.category || 'personalized-gifts',
+                subcategory: prod.subcategory || 'gifts',
+                rating: prod.rating || 4.8,
+                reviewsCount: prod.reviewsCount || 12,
+                isBestSeller: prod.isBestSeller,
+                isNew: prod.isNew,
+                isPersonalized: prod.isPersonalized ?? true
+              }} 
+            />
+          ))}
+        </div>
       ) : (
-        <AnimatePresence mode="wait">
-          {displayedProducts.length > 0 ? (
-            <motion.div
-              key={`${category}-${subcategory}-${view}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className={cn(
-                "grid gap-8",
-                view === 'grid' ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-              )}
-            >
-              {displayedProducts.map((product) => (
-                <div key={product.id} className="group relative">
-                  {view === 'grid' ? (
-                    <div className="relative">
-                      <ProductCard product={product} />
-                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 z-20">
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="w-10 h-10 rounded-full shadow-xl bg-white hover:bg-sky-50 hover:text-sky-600"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setQuickViewProduct(product);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="secondary"
-                          className="w-10 h-10 rounded-full shadow-xl bg-white hover:bg-rose-50 hover:text-rose-500"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Heart className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-32 left-4 right-4 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20">
-                        <Button
-                          asChild
-                          className="w-full bg-slate-900/90 backdrop-blur-md hover:bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl h-11"
-                        >
-                          <Link 
-                            href={`/product/${product.id}`}
-                            prefetch={true}
-                            onMouseEnter={() => cacheProduct(product)}
-                            onTouchStart={() => cacheProduct(product)}
-                          >
-                            Buy Now
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row bg-white rounded-[2.5rem] overflow-hidden border border-slate-50 shadow-sm hover:shadow-2xl transition-all duration-500">
-                      <div className="relative w-full sm:w-72 aspect-square flex-shrink-0 bg-slate-50 overflow-hidden">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                          sizes="(max-width: 768px) 100vw, 300px"
-                        />
-                        {product.isBestSeller && <span className="absolute top-6 left-6 bg-amber-500 text-white text-[9px] font-black px-3 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg">BEST SELLER</span>}
-                      </div>
-                      <div className="p-8 flex flex-col justify-center flex-1 space-y-4">
-                        <div className="space-y-1">
-                          <div className="text-[10px] font-black text-sky-500 uppercase tracking-[0.25em] leading-none">{product.category} • {product.subcategory}</div>
-                          <h3 className="text-2xl font-headline font-black text-slate-800 group-hover:text-sky-600 transition-colors leading-tight">{product.name}</h3>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <span className="text-3xl font-black text-slate-800">₹{product.price.toLocaleString()}</span>
-                          {product.oldPrice && <span className="text-lg text-slate-300 line-through font-bold">₹{product.oldPrice.toLocaleString()}</span>}
-                        </div>
-
-                        <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-xl italic line-clamp-2">"{product.description}"</p>
-
-                        <div className="flex items-center gap-6 pt-2">
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} className={cn("h-3.5 w-3.5", i < Math.floor(product.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-100')} />
-                              ))}
-                            </div>
-                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">({product.reviews || 0} Reviews)</span>
-                          </div>
-                          <div className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full", product.inventoryStatus === 'In Stock' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600")}>
-                            {product.inventoryStatus}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-4 pt-4">
-                          <Button
-                            asChild
-                            className="bg-sky-600 hover:bg-sky-700 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-2xl px-10 h-14 shadow-xl shadow-sky-100"
-                          >
-                            <Link 
-                              href={`/product/${product.id}`}
-                              prefetch={true}
-                              onMouseEnter={() => cacheProduct(product)}
-                              onTouchStart={() => cacheProduct(product)}
-                            >
-                              Buy Now
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => setQuickViewProduct(product)}
-                            className="rounded-2xl border-2 border-slate-100 text-slate-400 hover:bg-slate-50 font-black text-[11px] uppercase tracking-[0.2em] px-8 h-14"
-                          >
-                            <Eye className="h-4 w-4 mr-2" /> Quick View
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </motion.div>
-          ) : (
-            <div className="py-32 text-center bg-white rounded-[3rem] border-4 border-dashed border-slate-50">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-                <Search className="h-10 w-10" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-800">No Magic Found</h2>
-              <p className="text-slate-400 font-medium mt-2">Try adjusting your filters or search terms.</p>
-              <Button
-                variant="link"
-                asChild
-                className="mt-6 text-sky-600 font-black uppercase tracking-widest text-[10px]"
-              >
-                <Link href={category ? `/shop/${category}` : '/shop/new/new-collection'}>Clear All Filters</Link>
-              </Button>
-            </div>
-          )}
-        </AnimatePresence>
+        <div className="py-20 text-center space-y-4">
+          <Package className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800 dark:text-white">No Products Found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            We are crafting new magical designs for this collection. Check back soon or browse all collections.
+          </p>
+          <Button asChild className="rounded-xl bg-purple-600 hover:bg-purple-700 text-xs font-semibold">
+            <Link href="/collections">Explore All Collections</Link>
+          </Button>
+        </div>
       )}
-
-      <ProductQuickView product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
     </div>
   );
 }

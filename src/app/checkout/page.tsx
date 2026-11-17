@@ -422,6 +422,16 @@ export default function CheckoutPage() {
             }
 
             await recordCouponUsage();
+
+            // Save to local recent orders so guest or newly logged in customer sees it immediately
+            try {
+              const existingRecent = JSON.parse(localStorage.getItem('giftmart_recent_orders') || '[]');
+              const updatedRecent = Array.from(new Set([orderRef.id, ...existingRecent])).slice(0, 20);
+              localStorage.setItem('giftmart_recent_orders', JSON.stringify(updatedRecent));
+            } catch (e) {
+              console.warn("Could not save to local recent orders", e);
+            }
+
             clearCart();
 
             toast({
