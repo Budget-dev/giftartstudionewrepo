@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -19,10 +19,13 @@ import {
   Shapes,
   FolderOpen,
   Wand2,
-  PawPrint
+  PawPrint,
+  CreditCard,
+  PlusCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore, useCollection } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import {
   Collapsible,
@@ -110,7 +113,8 @@ const CATALOG_GROUPS = [
 const CORE_ITEMS = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'All Products', href: '/admin/products', icon: FolderOpen },
-  { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { label: 'Orders', href: '/admin/orders', icon: ShoppingBag, hasBadge: true },
+  { label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { label: 'Custom AI Orders', href: '/admin/customized-orders', icon: Wand2 },
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'RTO Management', href: '/admin/rto', icon: Undo2 },
@@ -121,7 +125,16 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+  // Real pending orders count for the badge
+  const pendingOrdersQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'orders'), where('status', '==', 'Pending'));
+  }, [db]);
+  const { data: pendingOrders } = useCollection<any>(pendingOrdersQuery);
+  const pendingCount = pendingOrders?.length || 0;
 
   const toggleGroup = (label: string) => {
     setOpenGroups(prev => 
@@ -130,15 +143,16 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-72 bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 overflow-y-auto scrollbar-hide">
-      <div className="p-8 shrink-0">
-        <Link href="/admin/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-            <Gift className="h-6 w-6" />
+    <aside className="w-72 bg-white border-r border-slate-100/80 flex flex-col h-screen sticky top-0 overflow-y-auto scrollbar-hide shadow-sm z-40">
+      {/* Brand Header */}
+      <div className="p-6 pb-4 shrink-0 border-b border-slate-50">
+        <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#7c3aed] to-[#6366f1] rounded-2xl flex items-center justify-center text-white shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
+            <Gift className="h-5 w-5" />
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="font-headline font-black text-xl text-slate-800 tracking-tighter">Admin<span className="text-indigo-600 italic">Studio</span></span>
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">GiftArt Management</span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-extrabold text-base text-slate-800 tracking-tight">GiftArtStudio</span>
+            <span className="text-[10px] font-bold text-slate-400">Admin Panel</span>
           </div>
         </Link>
       </div>
@@ -153,25 +167,39 @@ export function AdminSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "group flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300",
+                  "group flex items-center justify-between px-3.5 py-2.5 rounded-2xl transition-all duration-200 text-xs font-bold",
                   isActive 
-                    ? "bg-indigo-50 text-indigo-600 shadow-sm" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-[#f3e8ff] text-[#6d28d9] shadow-sm shadow-purple-100" 
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <item.icon className={cn("h-5 w-5", isActive ? "text-indigo-600" : "text-slate-400")} />
-                  <span className="text-sm font-bold tracking-tight">{item.label}</span>
+                  <item.icon className={cn("h-4 w-4", isActive ? "text-[#7c3aed]" : "text-slate-400 group-hover:text-slate-600")} />
+                  <span className="tracking-tight">{item.label}</span>
                 </div>
-                {isActive && <ChevronRight className="h-4 w-4" />}
+                {item.hasBadge && pendingCount > 0 ? (
+                  <span className="bg-[#7c3aed] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+                    {pendingCount}
+                  </span>
+                ) : (
+                  isActive && <ChevronRight className="h-3.5 w-3.5 text-[#7c3aed]" />
+                )}
               </Link>
             );
           })}
         </div>
 
         {/* Catalog Category Groups */}
-        <div className="space-y-2">
-          <p className="px-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4">Store Catalog</p>
+        <div className="space-y-1">
+          <div className="px-3 pb-2 flex items-center justify-between">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Store Catalog</p>
+            <Link 
+              href="/admin/products" 
+              className="text-[9px] font-bold text-purple-600 hover:underline flex items-center gap-1"
+            >
+              <PlusCircle className="w-2.5 h-2.5" /> Add
+            </Link>
+          </div>
           
           {CATALOG_GROUPS.map((group) => {
             const isGroupOpen = openGroups.includes(group.label) || pathname.startsWith(group.hrefPrefix);
@@ -183,14 +211,14 @@ export function AdminSidebar() {
                 onOpenChange={() => toggleGroup(group.label)}
                 className="space-y-1"
               >
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-2xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all font-bold text-sm">
+                <CollapsibleTrigger className="flex items-center justify-between w-full px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all font-bold text-xs">
                   <div className="flex items-center gap-3">
-                    <group.icon className="h-5 w-5 text-slate-400" />
+                    <group.icon className="h-4 w-4 text-slate-400" />
                     <span className="tracking-tight">{group.label}</span>
                   </div>
-                  <ChevronDown className={cn("h-4 w-4 transition-transform", isGroupOpen && "rotate-180")} />
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-slate-400 transition-transform duration-200", isGroupOpen && "rotate-180")} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 pl-10 pr-2 pb-2">
+                <CollapsibleContent className="space-y-1 pl-9 pr-2 pb-2">
                   {group.items.map((item) => {
                     const href = `${group.hrefPrefix}/${item.sub}`;
                     const isActive = pathname === href;
@@ -199,10 +227,10 @@ export function AdminSidebar() {
                         key={item.sub}
                         href={href}
                         className={cn(
-                          "block px-4 py-2.5 rounded-xl text-xs font-bold transition-all",
+                          "block px-3 py-2 rounded-xl text-[11px] font-bold transition-all",
                           isActive 
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" 
-                            : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
+                            ? "bg-purple-600 text-white shadow-sm" 
+                            : "text-slate-500 hover:text-purple-600 hover:bg-purple-50/60"
                         )}
                       >
                         {item.label}
@@ -216,12 +244,13 @@ export function AdminSidebar() {
         </div>
       </nav>
 
-      <div className="p-6 border-t border-slate-50 shrink-0">
+      {/* Footer Sign Out */}
+      <div className="p-4 border-t border-slate-100 shrink-0">
         <button
           onClick={() => signOut(auth).then(() => router.push('/admin/login'))}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all font-bold text-sm"
+          className="flex items-center gap-2.5 px-3.5 py-2.5 w-full rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all font-bold text-xs"
         >
-          <LogOut className="h-5 w-5" /> Sign Out
+          <LogOut className="h-4 w-4" /> Sign Out
         </button>
       </div>
     </aside>

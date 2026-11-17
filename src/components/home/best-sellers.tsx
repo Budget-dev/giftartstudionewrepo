@@ -7,8 +7,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { cacheProduct, cacheProducts } from '@/lib/product-cache';
 
 // The high-resolution background provided by the user
 const BG_ARTWORK = "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png";
@@ -33,6 +34,12 @@ export function BestSellers({ cms }: { cms?: any }) {
   }, [db]);
 
   const { data: products, loading } = useCollection<any>(bestSellersQuery);
+
+  useEffect(() => {
+    if (products?.length) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   return (
     <section className="hidden md:block relative bg-white overflow-hidden py-12">
@@ -150,7 +157,13 @@ export function BestSellers({ cms }: { cms?: any }) {
                         theme.bg
                       )}
                     >
-                      <Link href={`/product/${p.id}`} className="flex flex-col h-full">
+                      <Link 
+                        href={`/product/${p.id}`} 
+                        prefetch={true}
+                        onMouseEnter={() => cacheProduct(p)}
+                        onTouchStart={() => cacheProduct(p)}
+                        className="flex flex-col h-full"
+                      >
                         {/* Product Image Area - Edge-to-edge top, left, right to match reference */}
                         <div className="relative aspect-square w-full bg-white rounded-t-[3rem] overflow-hidden">
                           <Image 

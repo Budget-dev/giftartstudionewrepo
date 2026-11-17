@@ -32,6 +32,16 @@ rules_version = '2';
 //   - transactionId: string (optional) - Payment / UTR reference
 //   - createdAt: timestamp (optional) - Creation timestamp
 //
+// Collection: payments
+// Document ID: paymentId (auto-generated or razorpay payment id)
+// Fields:
+//   - orderId: string (required) - Associated order document ID
+//   - razorpayPaymentId: string (required) - Gateway transaction reference
+//   - amount: number (required, > 0) - Amount paid in INR
+//   - status: string (required) - Payment status (e.g. 'Captured', 'Paid')
+//   - userId: string (optional) - 'guest' or Auth UID
+//   - createdAt: timestamp (optional) - Verification/creation timestamp
+//
 // Collection: coupons
 // Document ID: couponId (auto-generated)
 // Fields:
@@ -117,6 +127,23 @@ service cloud.firestore {
              (!('userId' in request.resource.data) || request.resource.data.userId is string);
     }
 
+    // Domain Validator: Payments Creation
+    function isValidPaymentCreate() {
+      return hasRequiredFields(['orderId', 'razorpayPaymentId', 'amount', 'status']) &&
+             request.resource.data.orderId is string &&
+             request.resource.data.orderId.size() > 0 &&
+             request.resource.data.orderId.size() <= 128 &&
+             request.resource.data.razorpayPaymentId is string &&
+             request.resource.data.razorpayPaymentId.size() > 0 &&
+             request.resource.data.razorpayPaymentId.size() <= 128 &&
+             request.resource.data.amount is number &&
+             request.resource.data.amount > 0 &&
+             request.resource.data.status is string &&
+             request.resource.data.status.size() > 0 &&
+             request.resource.data.status.size() <= 50 &&
+             (!('userId' in request.resource.data) || request.resource.data.userId is string);
+    }
+
     // Domain Validator: Coupon Usage Increment
     function isCouponUsageIncrement() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']) &&
@@ -159,6 +186,16 @@ service cloud.firestore {
       allow list: if isSuperOwner() || 
                      (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSuperOwner() || isValidOrderCreate();
+      allow update, delete: if isSuperOwner();
+    }
+
+    // Payments: Audit log for verified gateway transactions.
+    // Public creation allowed with validated payload (or super owner).
+    // Read restricted to super owner or authenticated transaction owner.
+    // Update/delete strictly reserved for super owner.
+    match /payments/{paymentId} {
+      allow read: if isSuperOwner() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSuperOwner() || isValidPaymentCreate();
       allow update, delete: if isSuperOwner();
     }
 

@@ -7,16 +7,29 @@ import {
   DocumentSnapshot,
   DocumentData,
   FirestoreError,
+  getDocFromCache,
 } from 'firebase/firestore';
 
 /**
  * Ultra-performant useDoc hook with local caching, instant response, and connection timeout guard.
  */
-export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useDoc<T = DocumentData>(
+  ref: DocumentReference<T> | null,
+  initialData?: T | null
+) {
+  const [data, setData] = useState<T | null>(() => initialData ?? null);
+  const [loading, setLoading] = useState(() => !initialData);
   const [error, setError] = useState<Error | null>(null);
-  const initialLoadDone = useRef(false);
+  const initialLoadDone = useRef(Boolean(initialData));
+
+  // Sync initialData if provided
+  useEffect(() => {
+    if (initialData && !data) {
+      setData(initialData);
+      setLoading(false);
+      initialLoadDone.current = true;
+    }
+  }, [initialData, data]);
 
   useEffect(() => {
     if (!ref) {
@@ -25,8 +38,25 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
       return;
     }
 
-    setLoading(true);
+    if (!initialLoadDone.current) {
+      setLoading(true);
+    }
     let isMounted = true;
+
+    // Fast-path: Check IndexedDB local cache immediately (resolves in ~3ms)
+    if (!initialLoadDone.current) {
+      getDocFromCache(ref)
+        .then((cacheSnap) => {
+          if (isMounted && cacheSnap.exists() && !initialLoadDone.current) {
+            initialLoadDone.current = true;
+            setData({ ...cacheSnap.data(), id: cacheSnap.id } as T);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          // Cache miss, onSnapshot will load from server
+        });
+    }
 
     // Safety timeout: If connection takes > 2000ms, unlock loading state to prevent hanging spinners
     const timeoutId = setTimeout(() => {

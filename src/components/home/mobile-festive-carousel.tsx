@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { cacheProduct, cacheProducts } from '@/lib/product-cache';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 interface MobileFestiveCarouselProps {
   cms?: any;
@@ -38,6 +40,12 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
   }, [db]);
 
   const { data: products, loading } = useCollection<any>(festiveQuery);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -107,15 +115,21 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
               <div className="flex gap-2">
                 {products.map((p: any) => (
                   <div key={p.id} className="flex-[0_0_calc((100%-16px)/3)] min-w-0">
-                    <Link href={`/product/${p.id}`} className="block h-full">
+                    <Link 
+                      href={`/product/${p.id}`} 
+                      prefetch={true}
+                      onMouseEnter={() => cacheProduct(p)}
+                      onTouchStart={() => cacheProduct(p)}
+                      className="block h-full"
+                    >
                       <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.06)] h-full flex flex-col border border-slate-50">
                         <div className="relative aspect-[4/5] w-full bg-slate-50">
                           <Image 
-                            src={p.image} 
+                            src={getOptimizedImageUrl(p.image, 400)} 
                             alt={p.name} 
                             fill 
                             className="object-cover"
-                            unoptimized
+                            sizes="(max-width: 768px) 33vw, 200px"
                           />
                         </div>
                         <div className="p-2.5 space-y-1.5 flex-1 flex flex-col justify-between">

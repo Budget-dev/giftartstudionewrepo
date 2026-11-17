@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { ProductCard } from '@/components/product-card';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
+import { cacheProducts } from '@/lib/product-cache';
 
 interface RelatedProductsProps {
   currentProductId: string;
@@ -27,6 +28,12 @@ export function RelatedProducts({ currentProductId, category }: RelatedProductsP
   
   const { data: products, loading } = useCollection<any>(relatedQuery);
   const related = products?.filter(p => p.id !== currentProductId).slice(0, 4);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   if (loading) return null;
   if (!related || related.length === 0) return null;

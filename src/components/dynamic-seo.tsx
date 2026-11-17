@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { getCachedProduct } from '@/lib/product-cache';
 
 export function DynamicSEO() {
   const pathname = usePathname();
@@ -22,17 +23,25 @@ export function DynamicSEO() {
     return null;
   }, [pathname]);
 
-  // If on product page, fetch product-specific SEO
+  // If on product page, fetch product-specific SEO (cached first, no duplicate calls)
   useEffect(() => {
-    if (!db || !productId) {
+    if (!productId) {
       setProductData(null);
       return;
     }
 
+    // 1. Instant synchronous cache lookup (0ms, 0 network calls)
+    const cached = getCachedProduct(productId);
+    if (cached) {
+      setProductData(cached);
+      return;
+    }
+
+    if (!db) return;
+
     const fetchProduct = async () => {
       try {
         const productRef = doc(db, 'products', productId);
-        // We use a simple fetch here instead of useDoc to avoid hook complexity in DynamicSEO
         const { getDoc } = await import('firebase/firestore');
         const snap = await getDoc(productRef);
         if (snap.exists()) {

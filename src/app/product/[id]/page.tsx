@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { use, useMemo, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { KidsDecor } from '@/components/kids-decor';
@@ -11,6 +12,8 @@ import { doc } from 'firebase/firestore';
 import { AlertCircle, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { getCachedProduct, cacheProduct } from '@/lib/product-cache';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 function ProductDetailsSkeleton() {
   return (
@@ -46,9 +49,30 @@ function ProductDetailsSkeleton() {
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const db = useFirestore();
+  const [showRelated, setShowRelated] = useState(false);
   
+  const cachedProduct = useMemo(() => getCachedProduct(resolvedParams.id), [resolvedParams.id]);
   const productRef = useMemo(() => db ? doc(db, 'products', resolvedParams.id) : null, [db, resolvedParams.id]);
-  const { data: product, loading } = useDoc<any>(productRef);
+  const { data: product, loading } = useDoc<any>(productRef, cachedProduct);
+
+  const heroImage = product?.image || cachedProduct?.image;
+  if (heroImage && typeof ReactDOM.preload === 'function') {
+    ReactDOM.preload(getOptimizedImageUrl(heroImage, 900), { as: 'image' });
+  }
+
+  useEffect(() => {
+    if (product) {
+      cacheProduct(product);
+    }
+  }, [product]);
+
+  // Progressively defer related products so main product details paints without competition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowRelated(true);
+    }, 120);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <main className="min-h-screen bg-white relative overflow-x-hidden">
@@ -61,9 +85,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         ) : product ? (
           <>
             <ProductDetails product={product} />
-            <div className="mt-20">
-              <RelatedProducts currentProductId={product.id} category={product.category} />
-            </div>
+            {showRelated && (
+              <div className="mt-20">
+                <RelatedProducts currentProductId={product.id} category={product.category} />
+              </div>
+            )}
           </>
         ) : (
           <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 text-center px-6">

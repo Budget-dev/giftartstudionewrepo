@@ -17,7 +17,7 @@ export async function createRazorpayOrder({
   notes = {}
 }: CreateOrderParams) {
   const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64');
-  
+
   const response = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
     headers: {
@@ -51,7 +51,7 @@ export function verifyRazorpaySignature({
   signature: string;
 }): boolean {
   if (!orderId || !paymentId || !signature) return false;
-  
+
   const text = `${orderId}|${paymentId}`;
   const generatedSignature = crypto
     .createHmac('sha256', RAZORPAY_KEY_SECRET)

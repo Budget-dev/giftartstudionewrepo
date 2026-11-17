@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { KidsDecor } from '@/components/kids-decor';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { CategoryGrid } from '@/components/home/category-grid';
+import { cacheProducts } from '@/lib/product-cache';
 
 const COLLECTIONS = [
   { name: 'Best Sellers', icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' },
@@ -25,16 +26,41 @@ export default function CollectionsPage() {
   
   const bestSellersQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'products'), where('isBestSeller', '==', true), limit(4));
+    return query(collection(db, 'products'), where('isBestSeller', '==', true), limit(8));
   }, [db]);
 
   const newArrivalsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'products'), where('isNew', '==', true), limit(4));
+    return query(collection(db, 'products'), where('isNew', '==', true), limit(8));
+  }, [db]);
+
+  const allProductsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'products'), limit(8));
   }, [db]);
   
   const { data: bestSellers, loading: bestLoading } = useCollection<any>(bestSellersQuery);
   const { data: newArrivals, loading: newLoading } = useCollection<any>(newArrivalsQuery);
+  const { data: allProducts, loading: allLoading } = useCollection<any>(allProductsQuery);
+
+  const displayBestSellers = useMemo(() => {
+    if (bestSellers && bestSellers.length > 0) return bestSellers;
+    return allProducts?.slice(0, 4) || [];
+  }, [bestSellers, allProducts]);
+
+  const displayNewArrivals = useMemo(() => {
+    if (newArrivals && newArrivals.length > 0) return newArrivals;
+    return allProducts?.slice(2, 6) || allProducts?.slice(0, 4) || [];
+  }, [newArrivals, allProducts]);
+
+  useEffect(() => {
+    if (displayBestSellers && displayBestSellers.length > 0) {
+      cacheProducts(displayBestSellers);
+    }
+    if (displayNewArrivals && displayNewArrivals.length > 0) {
+      cacheProducts(displayNewArrivals);
+    }
+  }, [displayBestSellers, displayNewArrivals]);
 
   return (
     <main className="min-h-screen bg-white relative overflow-x-hidden">
@@ -75,9 +101,9 @@ export default function CollectionsPage() {
                   </div>
                 ))}
               </div>
-            ) : bestSellers && bestSellers.length > 0 ? (
+            ) : displayBestSellers && displayBestSellers.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {bestSellers.map(product => (
+                {displayBestSellers.map((product: any) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
@@ -93,7 +119,7 @@ export default function CollectionsPage() {
               </h2>
               <Link href="/shop/new/new-collection" className="text-[10px] font-black text-sky-600 uppercase tracking-widest hover:underline">View All</Link>
             </div>
-            {newLoading ? (
+            {newLoading && allLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
                 {[1, 2, 3, 4].map(i => (
                   <div key={i} className="space-y-3">
@@ -103,9 +129,9 @@ export default function CollectionsPage() {
                   </div>
                 ))}
               </div>
-            ) : newArrivals && newArrivals.length > 0 ? (
+            ) : displayNewArrivals && displayNewArrivals.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {newArrivals.map(product => (
+                {displayNewArrivals.map((product: any) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

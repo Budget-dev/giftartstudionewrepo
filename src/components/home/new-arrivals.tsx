@@ -8,7 +8,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { cacheProduct, cacheProducts } from '@/lib/product-cache';
 
 interface NewArrivalsProps {
   cms?: {
@@ -35,6 +36,12 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
 
   const { data: products, loading } = useCollection<any>(arrivalsQuery);
   const title = cms?.title || "New Arrivals";
+
+  useEffect(() => {
+    if (products?.length) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   const bgImage = "https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/new-arrivals-sectoon-background.png";
 
@@ -118,7 +125,13 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                     </motion.div>
                   )}
 
-                  <Link href={`/product/${p.id}`} className="block h-full rounded-[2.2rem] md:rounded-[3.2rem] overflow-hidden">
+                  <Link 
+                    href={`/product/${p.id}`} 
+                    prefetch={true}
+                    onMouseEnter={() => cacheProduct(p)}
+                    onTouchStart={() => cacheProduct(p)}
+                    className="block h-full rounded-[2.2rem] md:rounded-[3.2rem] overflow-hidden"
+                  >
                     <div className="aspect-square w-full bg-slate-50 overflow-hidden relative">
                       <Image src={p.image} alt={p.name} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
                     </div>

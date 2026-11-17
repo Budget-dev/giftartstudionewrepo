@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ProductCard } from '@/components/product-card';
 import { ChevronLeft, ChevronRight, Rocket, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, limit } from 'firebase/firestore';
+import { cacheProducts } from '@/lib/product-cache';
 
 export function TrendingCarousel() {
   const db = useFirestore();
@@ -20,6 +21,12 @@ export function TrendingCarousel() {
   }, [db]);
 
   const { data: trendingProducts, loading } = useCollection<any>(trendingQuery);
+
+  useEffect(() => {
+    if (trendingProducts && trendingProducts.length > 0) {
+      cacheProducts(trendingProducts);
+    }
+  }, [trendingProducts]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     align: 'start',

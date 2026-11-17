@@ -13,9 +13,11 @@ import { useCart } from '@/lib/store/cart-context';
 function SuccessContent() {
   const { clearCart } = useCart();
   const searchParams = useSearchParams();
-  const orderParamId = searchParams.get('id');
+  const orderParamId = searchParams.get('id') || searchParams.get('orderId');
   const paymentMethod = searchParams.get('payment');
   const paymentId = searchParams.get('paymentId');
+  const paidAmount = searchParams.get('paid');
+  const remainingCod = searchParams.get('remaining');
   const [orderId, setOrderId] = useState('');
 
   useEffect(() => {
@@ -74,18 +76,22 @@ function SuccessContent() {
                )}
              </div>
              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
-               {paymentMethod === 'razorpay' ? (
+               {paymentMethod === 'full' || paymentMethod === 'razorpay' ? (
                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 text-[#5f259f] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-200 flex items-center gap-1.5 shadow-2xs">
                    <ShieldCheck className="h-3.5 w-3.5 text-[#5f259f]" />
-                   PAID VIA RAZORPAY
-                 </div>
-               ) : paymentMethod === 'phonepe' ? (
-                 <div className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-200">
-                   PAID VIA PHONEPE UPI
+                   PAID IN FULL VIA RAZORPAY {paidAmount ? `(₹${Number(paidAmount).toLocaleString()})` : ''}
                  </div>
                ) : (
-                 <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                   COD ORDER CONFIRMED
+                 <div className="bg-amber-50 text-amber-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-200 flex flex-col sm:items-end gap-0.5 shadow-2xs">
+                   <div className="flex items-center gap-1.5 text-[#5f259f]">
+                     <ShieldCheck className="h-3.5 w-3.5 text-[#5f259f]" />
+                     <span>₹{paidAmount || '100'} ADVANCE PAID VIA RAZORPAY</span>
+                   </div>
+                   {remainingCod && Number(remainingCod) > 0 && (
+                     <span className="text-amber-700 font-bold text-[9px]">
+                       Cash Due on Delivery: ₹{Number(remainingCod).toLocaleString()}
+                     </span>
+                   )}
                  </div>
                )}
              </div>

@@ -41,6 +41,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getOptimizedImageUrl, getThumbnailImageUrl } from '@/lib/image-optimizer';
 
 interface ProductDetailsProps {
   product: Product;
@@ -384,7 +385,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   <div key={i} className="relative flex-[0_0_100%] min-w-0 h-full p-4 md:p-6 flex items-center justify-center">
                     <div className="relative w-full h-full">
                       <Image 
-                        src={img} 
+                        src={getOptimizedImageUrl(img, 900)} 
                         alt={`${product.name} view ${i + 1}`} 
                         fill 
                         className="object-contain transition-transform duration-700 group-hover:scale-105"
@@ -432,7 +433,13 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                       : "border-slate-200 opacity-70 hover:opacity-100"
                   )}
                 >
-                  <Image src={img} alt={`Thumb ${i + 1}`} fill className="object-cover" />
+                  <Image 
+                    src={getThumbnailImageUrl(img)} 
+                    alt={`Thumb ${i + 1}`} 
+                    fill 
+                    className="object-cover" 
+                    unoptimized
+                  />
                 </button>
               ))}
             </div>
@@ -914,7 +921,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         <DialogContent className="max-w-md p-0 overflow-hidden bg-black border-none rounded-[2rem] aspect-[9/16] shadow-2xl">
           <DialogTitle className="sr-only">Product Reel</DialogTitle>
           <div className="relative h-full w-full">
-            {product.videoUrl && (
+            {isVideoOpen && product.videoUrl && (
               <video 
                 src={product.videoUrl} 
                 className="w-full h-full object-cover" 

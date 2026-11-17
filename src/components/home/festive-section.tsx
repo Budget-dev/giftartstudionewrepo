@@ -8,7 +8,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { cacheProduct, cacheProducts } from '@/lib/product-cache';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 interface FestiveSectionProps {
   cms?: {
@@ -39,6 +41,12 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
   }, [db]);
 
   const { data: products, loading } = useCollection<any>(festiveQuery);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   const bannerUrl = cms?.bannerUrl || DEFAULT_BANNER;
   const sectionTitle = cms?.title || "Celebration Gifts Collection";
@@ -98,15 +106,21 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
                 transition={{ delay: i * 0.1, duration: 0.6, type: 'spring' }}
                 className="w-full md:flex-1 bg-[#EA580C] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col group cursor-pointer"
               >
-                <Link href={`/product/${p.id}`} className="flex flex-col h-full">
+                <Link 
+                  href={`/product/${p.id}`} 
+                  prefetch={true}
+                  onMouseEnter={() => cacheProduct(p)}
+                  onTouchStart={() => cacheProduct(p)}
+                  className="flex flex-col h-full"
+                >
                   {/* Product Image Area - Edge-to-edge top, left, right to match reference */}
                   <div className="relative aspect-square w-full bg-white rounded-t-[3rem] overflow-hidden">
                     <Image 
-                      src={p.image} 
+                      src={getOptimizedImageUrl(p.image, 600)} 
                       alt={p.name} 
                       fill 
                       className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                      unoptimized
+                      sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   </div>
                   

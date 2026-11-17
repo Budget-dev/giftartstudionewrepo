@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { cacheProduct, cacheProducts } from '@/lib/product-cache';
 
 interface MobileBestSellersProps {
   cms?: any;
@@ -37,6 +38,12 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
   }, [db]);
   
   const { data: products, loading } = useCollection<any>(bestSellersQuery);
+
+  useEffect(() => {
+    if (products?.length) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -112,7 +119,14 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
                 {slides.map((group, groupIdx) => (
                   <div key={groupIdx} className="flex-[0_0_100%] min-w-0 grid grid-cols-3 gap-2">
                     {group.map((p: any) => (
-                      <Link key={p.id} href={`/product/${p.id}`} className="block">
+                      <Link 
+                        key={p.id} 
+                        href={`/product/${p.id}`} 
+                        prefetch={true}
+                        onMouseEnter={() => cacheProduct(p)}
+                        onTouchStart={() => cacheProduct(p)}
+                        className="block"
+                      >
                         <div className="bg-white rounded-[14px] p-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.1)] flex flex-col h-full border border-pink-50/20">
                           <div className="relative aspect-square w-full rounded-[10px] overflow-hidden bg-slate-50 mb-1.5">
                             <Image 

@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Product } from '@/lib/types';
 import { Star } from 'lucide-react';
+import { cacheProduct } from '@/lib/product-cache';
 
 interface ProductCardProps {
   product: Product;
@@ -14,17 +15,27 @@ interface ProductCardProps {
 // Memoized ProductCard to prevent re-renders when parent slider updates.
 // Optimized Next.js Image with accurate sizes for better responsive loading.
 export const ProductCard = memo(({ product }: ProductCardProps) => {
+  useEffect(() => {
+    cacheProduct(product);
+  }, [product]);
+
   return (
-    <Link href={`/product/${product.id}`} className="block h-full group">
+    <Link 
+      href={`/product/${product.id}`} 
+      prefetch={true}
+      onMouseEnter={() => cacheProduct(product)}
+      onTouchStart={() => cacheProduct(product)}
+      className="block h-full group"
+    >
       <Card className="relative h-full overflow-hidden bg-white border-none shadow-sm hover:shadow-2xl transition-all duration-500 rounded-[2rem]">
         {/* Image Section */}
         <div className="relative aspect-square overflow-hidden bg-slate-50">
           <Image
-            src={product.image}
-            alt={product.name}
+            src={product.image || product.images?.[0] || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=600&auto=format&fit=crop'}
+            alt={product.name || 'Product'}
             fill
             className="object-cover transition-transform duration-1000 group-hover:scale-110"
-            data-ai-hint={product.imageHint}
+            data-ai-hint={product.imageHint || 'gift product'}
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           />
           

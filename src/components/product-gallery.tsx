@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { ProductCard } from './product-card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, limit, query } from 'firebase/firestore';
 import Link from 'next/link';
+import { cacheProducts } from '@/lib/product-cache';
 
 interface ProductGalleryProps {
   title?: string;
@@ -27,6 +28,12 @@ export function ProductGallery({
 
   const { data: products, loading } = useCollection<any>(productsQuery);
   const displayProducts = products?.slice(0, 8);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      cacheProducts(products);
+    }
+  }, [products]);
 
   return (
     <section id="gallery" className="py-24 relative overflow-hidden">
