@@ -67,23 +67,23 @@ export default function CollectionsPage() {
       <Navbar />
       <KidsDecor />
       
-      <div className="pt-28 lg:pt-36">
-        <div className="container mx-auto px-4 py-8 text-center flex flex-col items-center border-b border-slate-50">
-          <h1 className="text-3xl md:text-5xl font-headline font-black tracking-tight text-slate-800 uppercase">
+      <div className="pt-20 md:pt-24 lg:pt-28">
+        <div className="container mx-auto px-4 py-3 md:py-5 text-center flex flex-col items-center border-b border-slate-100">
+          <h1 className="text-2xl md:text-3xl font-headline font-black tracking-tight text-slate-800 uppercase">
             Store Collections
           </h1>
-          <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic opacity-80">
+          <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest italic opacity-80">
             Handpicked sets designed to bring joy and wonder to every occasion.
           </p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="mb-12">
+      <div className="container mx-auto px-4 py-4 md:py-6 relative z-10">
+        <div className="mb-6 md:mb-10">
           <CategoryGrid />
         </div>
 
-        <div className="space-y-20">
+        <div className="space-y-8 md:space-y-12">
           <section>
             <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-4">
               <h2 className="text-xl font-headline font-black text-slate-800 flex items-center gap-3 uppercase tracking-tight">

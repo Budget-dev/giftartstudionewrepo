@@ -10,8 +10,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 
+import { cn } from '@/lib/utils';
+
 interface FilterSidebarProps {
   category?: string;
+  subcategory?: string;
+  onClose?: () => void;
 }
 
 const CATEGORY_ITEMS = [
@@ -26,7 +30,7 @@ const CATEGORY_ITEMS = [
   { name: 'Customised Gifts', href: '/collections' },
 ];
 
-export function FilterSidebar({ category }: FilterSidebarProps) {
+export function FilterSidebar({ category, subcategory, onClose }: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -55,6 +59,7 @@ export function FilterSidebar({ category }: FilterSidebarProps) {
       rating: rating !== '0' ? rating : null,
     });
     router.push(`${pathname}?${query}`, { scroll: false });
+    onClose?.();
   };
 
   const handleReset = () => {
@@ -88,16 +93,25 @@ export function FilterSidebar({ category }: FilterSidebarProps) {
           {isCategoriesOpen ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
         </button>
         {isCategoriesOpen && (
-          <div className="pl-1 flex flex-col gap-2.5">
-            {CATEGORY_ITEMS.map((item) => (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                className="text-xs font-semibold text-slate-500 hover:text-[#7E22CE] hover:translate-x-1 transition-all duration-300 block"
-              >
-                {item.name}
-              </Link>
-            ))}
+          <div className="pl-1 flex flex-col gap-1.5">
+            {CATEGORY_ITEMS.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link 
+                  key={item.name} 
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "text-xs font-semibold hover:text-[#7E22CE] hover:translate-x-1 transition-all duration-200 block py-1 px-2 rounded-lg",
+                    isActive 
+                      ? "text-[#7E22CE] bg-purple-50 font-bold" 
+                      : "text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

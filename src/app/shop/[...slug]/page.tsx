@@ -32,6 +32,11 @@ export function generateStaticParams() {
     { slug: ['new', 'new-launch'] },
     { slug: ['new', 'best-sellers'] },
     { slug: ['new', 'festive'] },
+    { slug: ['new', 'sale'] },
+    { slug: ['new', 'reels'] },
+    { slug: ['kids', 'lifestyle'] },
+    { slug: ['kids', 'toys'] },
+    { slug: ['kids', 'hampers'] },
   ];
 }
 

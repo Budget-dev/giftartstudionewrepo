@@ -44,58 +44,89 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
     if (subcategory) {
       const sub = subcategory.toLowerCase();
       if (sub.includes('bottle')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('bottle') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('bottle') ||
           p.name?.toLowerCase().includes('bottle') ||
           p.title?.toLowerCase().includes('bottle')
         );
       } else if (sub.includes('mug')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('mug') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('mug') ||
           p.name?.toLowerCase().includes('mug') ||
           p.title?.toLowerCase().includes('mug')
         );
       } else if (sub.includes('bag')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('bag') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('bag') ||
           p.name?.toLowerCase().includes('bag') ||
           p.title?.toLowerCase().includes('bag')
         );
       } else if (sub.includes('umbrella')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('umbrella') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('umbrella') ||
           p.name?.toLowerCase().includes('umbrella') ||
           p.title?.toLowerCase().includes('umbrella')
         );
       } else if (sub.includes('combo')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('combo') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('combo') ||
           p.name?.toLowerCase().includes('combo') ||
           p.title?.toLowerCase().includes('combo')
         );
       } else if (sub.includes('stationery') || sub.includes('planner')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('stationery') || 
-          p.subcategory?.toLowerCase().includes('planner') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('stationery') ||
+          p.subcategory?.toLowerCase().includes('planner') ||
           p.name?.toLowerCase().includes('planner') ||
           p.name?.toLowerCase().includes('stationery')
         );
       } else if (sub.includes('lunch')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('lunch') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('lunch') ||
           p.name?.toLowerCase().includes('lunch')
         );
       } else if (sub.includes('passport')) {
-        result = result.filter(p => 
-          p.subcategory?.toLowerCase().includes('passport') || 
+        result = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('passport') ||
           p.name?.toLowerCase().includes('passport')
         );
       } else if (sub.includes('best-seller')) {
         result = result.filter(p => p.isBestSeller === true || p.subcategory === 'best-sellers');
       } else if (sub.includes('festive')) {
         result = result.filter(p => p.subcategory === 'festive' || p.category === 'festive');
+      } else if (sub.includes('sale')) {
+        const saleItems = result.filter(p => (p.oldPrice && p.oldPrice > p.price) || p.isSale || p.discount);
+        if (saleItems.length > 0) result = saleItems;
+      } else if (sub.includes('lifestyle')) {
+        const lifeItems = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('lifestyle') || 
+          p.category?.toLowerCase().includes('kids') || 
+          p.name?.toLowerCase().includes('bottle') || 
+          p.name?.toLowerCase().includes('bag')
+        );
+        if (lifeItems.length > 0) result = lifeItems;
+      } else if (sub.includes('toy') || sub.includes('game')) {
+        const toyItems = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('toy') || 
+          p.name?.toLowerCase().includes('toy') || 
+          p.category?.toLowerCase().includes('kids')
+        );
+        if (toyItems.length > 0) result = toyItems;
+      } else if (sub.includes('reel')) {
+        const reelItems = result.filter(p => p.videoUrl || p.isBestSeller);
+        if (reelItems.length > 0) result = reelItems;
+      } else if (sub.includes('hamper')) {
+        const hamperItems = result.filter(p => 
+          p.subcategory?.toLowerCase().includes('hamper') || 
+          p.subcategory?.toLowerCase().includes('combo') || 
+          p.name?.toLowerCase().includes('combo')
+        );
+        if (hamperItems.length > 0) result = hamperItems;
+      } else if (sub.includes('new')) {
+        const newItems = result.filter(p => p.isNew === true || p.category?.toLowerCase() === 'new' || p.isBestSeller === true);
+        if (newItems.length > 0) result = newItems;
       } else {
-        result = result.filter(p => 
+        result = result.filter(p =>
           p.subcategory?.toLowerCase() === sub ||
           p.subcategory?.toLowerCase().replace(/-/g, ' ') === sub.replace(/-/g, ' ') ||
           p.category?.toLowerCase() === category?.toLowerCase()
@@ -106,8 +137,8 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
       if (cat === 'new') {
         result = result.filter(p => p.category === 'new' || p.isNew === true || p.isBestSeller === true);
       } else if (cat.includes('personali')) {
-        result = result.filter(p => 
-          p.category?.toLowerCase().includes('personali') || 
+        result = result.filter(p =>
+          p.category?.toLowerCase().includes('personali') ||
           p.isPersonalized === true ||
           p.name?.toLowerCase().includes('personal') ||
           p.title?.toLowerCase().includes('personal')
@@ -115,8 +146,8 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
         // If specific personalized tag returned nothing, show all non-empty catalog items
         if (result.length === 0) result = [...allProducts];
       } else {
-        result = result.filter(p => 
-          p.category?.toLowerCase() === cat || 
+        result = result.filter(p =>
+          p.category?.toLowerCase() === cat ||
           p.category?.toLowerCase().replace(/-/g, ' ') === cat.replace(/-/g, ' ') ||
           p.category?.toLowerCase().includes(cat)
         );
@@ -126,7 +157,7 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
     // Keyword search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter(p => 
+      result = result.filter(p =>
         (p.name && p.name.toLowerCase().includes(q)) ||
         (p.title && p.title.toLowerCase().includes(q)) ||
         (p.description && p.description.toLowerCase().includes(q))
@@ -150,18 +181,18 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
   const isShowingFallback = filteredProducts.length === 0 && allProducts && allProducts.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Controls Bar */}
-      <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 sm:p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
         {/* Left: Count & Filter Button */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-start">
           <Button
             variant="outline"
             size="sm"
             onClick={onOpenFilters}
-            className="lg:hidden rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold gap-1.5"
+            className="lg:hidden rounded-lg border-slate-200 dark:border-slate-700 text-xs font-semibold gap-1.5 h-8 px-3"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#7E22CE]" />
             Filters
           </Button>
 
@@ -171,20 +202,20 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
         </div>
 
         {/* Right: Search & Sort */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-56">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-52">
             <input
               type="text"
               placeholder="Search in collection..."
               value={searchQuery}
               onChange={(e) => setSearchBar(e.target.value)}
-              className="w-full text-xs h-9 pl-8 pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 focus:ring-purple-600"
+              className="w-full text-xs h-8 pl-7 pr-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 outline-none focus:ring-1 focus:ring-purple-600"
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-2.5" />
           </div>
 
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-36 h-9 rounded-xl text-xs font-medium border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="w-32 h-8 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-700">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -215,21 +246,9 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
         </div>
       </div>
 
-      {/* Fallback Notice */}
-      {isShowingFallback && (
-        <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50 flex items-center justify-between">
-          <p className="text-xs text-purple-800 dark:text-purple-300 font-medium">
-            No exact matches found for &quot;{subcategory || category}&quot;. Showing our most popular gifts below:
-          </p>
-          <Link href="/collections" className="text-xs font-bold text-purple-600 hover:underline shrink-0 ml-4">
-            View All Collections →
-          </Link>
-        </div>
-      )}
-
       {/* Product Grid / Loading State */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
           {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div key={i} className="rounded-2xl border border-slate-100 dark:border-slate-800 p-4 space-y-3 animate-pulse bg-white dark:bg-slate-900">
               <div className="aspect-square bg-slate-100 dark:bg-slate-800 rounded-xl" />
@@ -241,12 +260,12 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
         </div>
       ) : displayProducts.length > 0 ? (
         <div className={view === 'grid' 
-          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" 
-          : "flex flex-col gap-4"
+          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5" 
+          : "flex flex-col gap-3"
         }>
           {displayProducts.map((prod: any) => (
-            <ProductCard 
-              key={prod.id} 
+            <ProductCard
+              key={prod.id}
               product={{
                 id: prod.id,
                 name: prod.name || prod.title || 'Gift Item',
@@ -262,7 +281,7 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
                 isBestSeller: prod.isBestSeller,
                 isNew: prod.isNew,
                 isPersonalized: prod.isPersonalized ?? true
-              }} 
+              }}
             />
           ))}
         </div>

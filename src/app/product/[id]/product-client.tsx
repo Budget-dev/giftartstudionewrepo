@@ -75,14 +75,14 @@ export default function ProductClient({ id }: { id: string }) {
       <Navbar />
       <KidsDecor />
 
-      <div className="pt-28 md:pt-36 lg:pt-40 pb-24 relative z-10">
+      <div className="pt-20 md:pt-28 lg:pt-32 pb-8 md:pb-16 relative z-10">
         {loading ? (
           <ProductDetailsSkeleton />
         ) : product ? (
           <>
             <ProductDetails product={product} />
             {showRelated && (
-              <div className="mt-20">
+              <div className="mt-4 md:mt-8">
                 <RelatedProducts currentProductId={product.id} category={product.category} />
               </div>
             )}
