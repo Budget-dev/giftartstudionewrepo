@@ -3,11 +3,18 @@
     "rules": "firestore.rules"
   },
   "hosting": {
-    "source": ".",
+    "public": ".firebase/studio-157276530-549e7/hosting",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }
