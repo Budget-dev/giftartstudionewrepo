@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 /**
@@ -8,11 +9,17 @@ import { cn } from '@/lib/utils';
  * Replaces the styled-components version with Tailwind CSS for consistency.
  */
 export function WhatsAppButton() {
+  const pathname = usePathname();
   const whatsappNumber = "+919876543210"; 
   const message = "Hi GiftArtStudio! I'd like to know more about your personalized gifts.";
 
+  // Never overlap checkout and payment screens
+  if (pathname === '/checkout' || pathname?.startsWith('/checkout/')) {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-36 lg:bottom-10 right-6 z-[110]">
+    <div className="fixed bottom-24 lg:bottom-10 right-6 z-[110]">
       <a 
         href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`}
         target="_blank"

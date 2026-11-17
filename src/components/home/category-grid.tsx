@@ -107,13 +107,13 @@ export function CategoryGrid({ cms }: { cms?: any }) {
                   style={{ backgroundColor: cat.backgroundColor || DEFAULT_MOCK.cards[i % 4]?.backgroundColor || '#F1F5F9' }}
                 >
                   {/* Badge with Category Name */}
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-auto">
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full px-2 flex justify-center">
                     <div className={cn(
-                      "bg-white border-[1.5px] px-3.5 py-1 rounded-md text-center shadow-sm",
+                      "bg-white border-[1.5px] px-3 py-1 rounded-full text-center shadow-sm max-w-[90%]",
                       colorPair.border
                     )}>
                       <span className={cn(
-                        "font-black text-[10px] tracking-widest uppercase block whitespace-nowrap",
+                        "font-black text-[10px] tracking-wider uppercase block truncate",
                         colorPair.text
                       )}>
                         {cat.title}

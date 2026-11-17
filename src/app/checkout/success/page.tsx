@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, ShoppingBag, ArrowRight, Star, Heart, Sparkles, MapPin, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, ArrowRight, Star, Heart, Sparkles, MapPin, ShieldCheck, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useCart } from '@/lib/store/cart-context';
@@ -81,7 +81,7 @@ function SuccessContent() {
                    <ShieldCheck className="h-3.5 w-3.5 text-[#5f259f]" />
                    PAID IN FULL VIA RAZORPAY {paidAmount ? `(₹${Number(paidAmount).toLocaleString()})` : ''}
                  </div>
-               ) : (
+               ) : paymentMethod === 'cod_advance' ? (
                  <div className="bg-amber-50 text-amber-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-200 flex flex-col sm:items-end gap-0.5 shadow-2xs">
                    <div className="flex items-center gap-1.5 text-[#5f259f]">
                      <ShieldCheck className="h-3.5 w-3.5 text-[#5f259f]" />
@@ -89,6 +89,18 @@ function SuccessContent() {
                    </div>
                    {remainingCod && Number(remainingCod) > 0 && (
                      <span className="text-amber-700 font-bold text-[9px]">
+                       Cash Due on Delivery: ₹{Number(remainingCod).toLocaleString()}
+                     </span>
+                   )}
+                 </div>
+               ) : (
+                 <div className="bg-slate-100 text-slate-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 flex flex-col sm:items-end gap-0.5 shadow-2xs">
+                   <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                     <Truck className="h-3.5 w-3.5 text-purple-600" />
+                     <span>CASH ON DELIVERY</span>
+                   </div>
+                   {remainingCod && Number(remainingCod) > 0 && (
+                     <span className="text-slate-600 font-bold text-[9px]">
                        Cash Due on Delivery: ₹{Number(remainingCod).toLocaleString()}
                      </span>
                    )}
@@ -128,7 +140,7 @@ function SuccessContent() {
             <Link href="/"><ShoppingBag className="h-5 w-5" /> Back to Studio</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-2xl border-2 border-slate-200 text-slate-600 hover:bg-slate-50 h-16 text-xs font-black uppercase tracking-widest px-10 transition-all active:scale-95 gap-3">
-            <Link href="/account"><ArrowRight className="h-5 w-5" /> View My Orders</Link>
+            <Link href="/account/orders"><ArrowRight className="h-5 w-5" /> View My Orders</Link>
           </Button>
         </div>
         
