@@ -706,7 +706,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   Estimated Delivery: {product.deliveryTime || '2 – 4 Days'}
                 </div>
                 <div className="text-[11px] text-slate-500 font-medium">
-                  Free shipping on orders above ₹999
+                  100% Free Shipping on All Orders across India
                 </div>
               </div>
             </div>

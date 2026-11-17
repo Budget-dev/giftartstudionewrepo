@@ -96,27 +96,40 @@ export default function LoginPage() {
     };
   }, []);
 
-  // Initialize Recaptcha Verifier
-  const getOrCreateRecaptcha = () => {
+  // Initialize Recaptcha Verifier safely
+  const getOrCreateRecaptcha = async () => {
     if (!auth) return null;
+    const container = document.getElementById('recaptcha-container');
+    if (!container) return null;
+
     if (window.recaptchaVerifier) {
       try {
         window.recaptchaVerifier.clear();
       } catch (e) {}
+      window.recaptchaVerifier = undefined;
     }
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    container.innerHTML = '';
+
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, container, {
       size: 'invisible',
       callback: () => {
-        // Recaptcha resolved
+        // Recaptcha resolved successfully
       },
       'expired-callback': () => {
         toast({
           variant: 'destructive',
           title: 'Verification Expired',
-          description: 'Please request the OTP again.'
+          description: 'Security check expired. Please tap Send OTP again.'
         });
       }
     });
+
+    try {
+      await window.recaptchaVerifier.render();
+    } catch (e) {
+      console.warn("Recaptcha render note:", e);
+    }
+
     return window.recaptchaVerifier;
   };
 
@@ -179,8 +192,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const appVerifier = getOrCreateRecaptcha();
-      if (!appVerifier) throw new Error('Could not setup security verification.');
+      const appVerifier = await getOrCreateRecaptcha();
+      if (!appVerifier) throw new Error('Could not setup security verification container.');
 
       const confirmation = await signInWithPhoneNumber(auth, formatted, appVerifier);
       window.confirmationResult = confirmation;
@@ -201,17 +214,27 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Phone auth error:', err);
       let msg = err.message || 'Could not send verification code.';
-      if (err.code === 'auth/invalid-phone-number') {
-        msg = 'The phone number format is invalid.';
+      if (err.code === 'auth/unauthorized-domain') {
+        const domain = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+        msg = `Domain '${domain}' is not authorized in Firebase Console. Please add '${domain}' to Firebase Console -> Authentication -> Settings -> Authorized Domains.`;
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = 'Phone authentication is not enabled or India (+91) is blocked in Google Cloud SMS Region Policy. Please check Firebase Authentication settings.';
+      } else if (err.code === 'auth/captcha-check-failed') {
+        msg = 'reCAPTCHA check failed. Please refresh the page and try again.';
+      } else if (err.code === 'auth/invalid-phone-number') {
+        msg = 'The phone number format is invalid. Please enter a valid 10-digit Indian mobile number.';
       } else if (err.code === 'auth/too-many-requests') {
-        msg = 'Too many attempts. Please try again after a few minutes.';
+        msg = 'Too many attempts from this IP/device. Please try again in 15 minutes or use Google Sign-In.';
       } else if (err.code === 'auth/billing-not-enabled' || err.code === 'auth/quota-exceeded') {
-        msg = 'SMS service quota reached. Please use Email or Google login.';
+        msg = 'SMS service quota reached or Blaze plan SMS limit hit. Please use Google Sign-In or Email.';
+      } else if (err.code === 'auth/invalid-app-credential') {
+        msg = 'App verification credential error. Ensure Firebase reCAPTCHA and domain settings are configured.';
       }
       toast({
         variant: 'destructive',
-        title: 'SMS Delivery Issue',
-        description: msg
+        title: `SMS Delivery Failed (${err.code || 'Error'})`,
+        description: msg,
+        duration: 8000
       });
     } finally {
       setLoading(false);

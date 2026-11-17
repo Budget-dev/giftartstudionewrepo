@@ -49,7 +49,7 @@ export default function ShippingPolicyPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
              {[
-               { icon: ShieldCheck, title: "Free Shipping", desc: "On all orders above ₹999 across India." },
+               { icon: ShieldCheck, title: "100% Free Shipping", desc: "Enjoy completely free delivery on all orders across India." },
                { icon: Box, title: "Handling Fee", desc: "A nominal charge of ₹40 for Cash on Delivery." },
                { icon: MapPin, title: "Pan-India Reach", desc: "We deliver to over 25,000+ pincodes." }
              ].map((item, i) => (

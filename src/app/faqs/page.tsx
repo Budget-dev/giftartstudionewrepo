@@ -20,7 +20,7 @@ const FAQ_DATA = [
     category: "Shipping & Delivery",
     questions: [
       { q: "How long will my order take to arrive?", a: "Standard orders take 3-5 business days. Personalized orders take 5-7 business days to account for our meticulous crafting process." },
-      { q: "Is delivery free?", a: "Delivery is FREE on all orders above ₹999. For orders below that, a flat shipping fee of ₹99 applies." },
+      { q: "Is delivery free?", a: "Delivery is 100% FREE on all orders across India! There are no hidden delivery charges." },
       { q: "Where do you ship from?", a: "All our magical gifts are handcrafted and shipped from our studio in Noida, Uttar Pradesh." }
     ]
   },

@@ -24,10 +24,25 @@ export default function ProfilePage() {
     return query(collection(db, 'orders'), where('userId', '==', user.uid));
   }, [db, user]);
   
+  const [localOrderIds, setLocalOrderIds] = useState<string[]>([]);
   const { data: profile, loading } = useDoc<any>(profileRef);
   const { data: orders } = useCollection<any>(ordersQuery);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('giftmart_recent_orders');
+      if (stored) {
+        const ids: string[] = JSON.parse(stored);
+        if (Array.isArray(ids)) {
+          setLocalOrderIds(ids);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load local orders", e);
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -57,7 +72,14 @@ export default function ProfilePage() {
     }
   };
 
-  const orderCount = orders?.length || 0;
+  const orderCount = useMemo(() => {
+    const idSet = new Set<string>();
+    if (orders) {
+      orders.forEach(o => idSet.add(o.id));
+    }
+    localOrderIds.forEach(id => idSet.add(id));
+    return idSet.size;
+  }, [orders, localOrderIds]);
 
   if (loading) {
     return (

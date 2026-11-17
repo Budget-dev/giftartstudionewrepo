@@ -22,8 +22,8 @@ import { cn } from '@/lib/utils';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, subtotal, cartCount } = useCart();
-  const shipping = subtotal >= 999 ? 0 : 99;
-  const total = subtotal + shipping;
+  const shipping = 0;
+  const total = subtotal;
 
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col">
@@ -36,11 +36,9 @@ export default function CartPage() {
           <div className="flex-1 space-y-8">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-headline font-black text-slate-800 uppercase tracking-tight">Your Bag ({cartCount})</h1>
-              {subtotal > 0 && subtotal < 999 && (
-                <div className="hidden md:flex items-center gap-2 bg-amber-50 text-amber-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-100">
-                  <Sparkles className="h-3.5 w-3.5" /> Add ₹{(999 - subtotal).toLocaleString()} for Free Shipping
-                </div>
-              )}
+              <div className="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                <Truck className="h-3.5 w-3.5" /> 100% Free Pan-India Delivery
+              </div>
             </div>
 
             {cart.length > 0 ? (
@@ -97,7 +95,7 @@ export default function CartPage() {
                 
                 <div className="space-y-4">
                   <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400"><span>Bag Subtotal</span><span className="text-slate-800">₹{subtotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400"><span>Shipping</span><span className={cn(shipping === 0 ? "text-emerald-500" : "text-slate-800")}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400"><span>Shipping</span><span className="text-emerald-500 font-extrabold">FREE</span></div>
                   <div className="pt-6 mt-6 border-t flex justify-between items-end">
                     <div className="space-y-0.5">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">Total Amount</p>

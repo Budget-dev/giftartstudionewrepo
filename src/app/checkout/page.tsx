@@ -149,7 +149,7 @@ export default function CheckoutPage() {
     toast({ title: "Coupon Removed" });
   };
 
-  const shipping = subtotal >= 999 ? 0 : 99;
+  const shipping = 0;
   const discount = useMemo(() => {
     if (!appliedCoupon) return 0;
     if (appliedCoupon.discountType === 'Percentage') {
@@ -158,7 +158,7 @@ export default function CheckoutPage() {
     return Math.min(appliedCoupon.value, subtotal);
   }, [appliedCoupon, subtotal]);
 
-  const total = Math.max(0, subtotal - discount + shipping);
+  const total = Math.max(0, subtotal - discount);
   const codAdvanceAmount = Math.min(100, total);
   const codRemainingAmount = Math.max(0, total - codAdvanceAmount);
 
@@ -368,27 +368,29 @@ export default function CheckoutPage() {
 
       const orderRef = await addDoc(collection(db, 'orders'), orderDoc);
 
-      // Ledger entry in payments collection
-      try {
-        const paymentDoc = {
-          orderId: orderRef.id,
-          razorpayPaymentId: orderInfo.transactionId.startsWith('COD_') ? null : orderInfo.transactionId,
-          amount: orderInfo.paidAmount,
-          currency: 'INR',
-          paymentType: orderInfo.paymentType,
-          paymentMethod: orderInfo.transactionId.startsWith('COD_') ? 'Cash on Delivery' : 'Razorpay',
-          status: orderInfo.paidAmount > 0 ? 'Captured' : 'Pending',
-          userId: user?.uid || 'guest',
-          customerName: formData.fullName,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-          totalOrderAmount: total,
-          remainingCodBalance: orderInfo.balanceAmount,
-          createdAt: serverTimestamp(),
-        };
-        await addDoc(collection(db, 'payments'), paymentDoc);
-      } catch (payErr) {
-        console.warn("Payment ledger note:", payErr);
+      // Ledger entry in payments collection for verified gateway payments
+      if (orderInfo.paidAmount > 0 && !orderInfo.transactionId.startsWith('COD_')) {
+        try {
+          const paymentDoc = {
+            orderId: orderRef.id,
+            razorpayPaymentId: orderInfo.transactionId,
+            amount: orderInfo.paidAmount,
+            currency: 'INR',
+            paymentType: orderInfo.paymentType,
+            paymentMethod: 'Razorpay',
+            status: 'Captured',
+            userId: user?.uid || 'guest',
+            customerName: formData.fullName,
+            customerEmail: formData.email,
+            customerPhone: formData.phone,
+            totalOrderAmount: total,
+            remainingCodBalance: orderInfo.balanceAmount,
+            createdAt: serverTimestamp(),
+          };
+          await addDoc(collection(db, 'payments'), paymentDoc);
+        } catch (payErr) {
+          console.warn("Payment ledger note:", payErr);
+        }
       }
 
       await recordCouponUsage();
@@ -751,7 +753,7 @@ export default function CheckoutPage() {
               <div className="pt-2 border-t border-slate-100 text-xs space-y-1 font-medium text-slate-600">
                 <div className="flex justify-between"><span>Subtotal:</span><span>₹{subtotal.toLocaleString()}</span></div>
                 {discount > 0 && <div className="flex justify-between text-emerald-600"><span>Discount:</span><span>-₹{discount.toLocaleString()}</span></div>}
-                <div className="flex justify-between"><span>Shipping:</span><span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+                <div className="flex justify-between"><span>Shipping:</span><span className="text-emerald-600 font-bold">FREE</span></div>
                 <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100"><span>Total:</span><span>₹{total.toLocaleString()}</span></div>
               </div>
             </div>
@@ -1135,7 +1137,7 @@ export default function CheckoutPage() {
               <div className="pt-3 border-t border-slate-100 text-xs space-y-2 font-medium text-slate-600">
                 <div className="flex justify-between"><span>Subtotal:</span><span>₹{subtotal.toLocaleString()}</span></div>
                 {discount > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Discount:</span><span>-₹{discount.toLocaleString()}</span></div>}
-                <div className="flex justify-between"><span>Shipping:</span><span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+                <div className="flex justify-between"><span>Shipping:</span><span className="text-emerald-600 font-bold">FREE</span></div>
                 <div className="flex justify-between font-extrabold text-slate-900 text-sm pt-2 border-t border-slate-100">
                   <span>Final Total:</span>
                   <span>₹{total.toLocaleString()}</span>
@@ -1146,7 +1148,7 @@ export default function CheckoutPage() {
                 <p className="font-bold flex items-center gap-1.5">
                   <Truck className="h-3.5 w-3.5 text-purple-600" /> Handcrafted & Dispatched in 2-4 Days
                 </p>
-                <p className="text-[11px] text-slate-500">Free delivery on orders above ₹999.</p>
+                <p className="text-[11px] text-emerald-600 font-medium">100% Free delivery across India on every order.</p>
               </div>
             </div>
           </aside>
