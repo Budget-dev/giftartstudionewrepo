@@ -17,7 +17,10 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Printer,
+  MapPin,
+  PackageCheck
 } from 'lucide-react';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -49,6 +52,94 @@ export default function OrdersPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [carrierInput, setCarrierInput] = useState('Delhivery');
+  const [trackingInput, setTrackingInput] = useState('');
+  const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
+
+  const handleUpdateShipping = async (orderId: string) => {
+    if (!db || !orderId) return;
+    setIsUpdatingTracking(true);
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        carrier: carrierInput || 'Delhivery',
+        trackingNumber: trackingInput,
+        status: 'Shipped',
+        shippedAt: new Date().toISOString()
+      });
+      toast({ title: 'Shipment Updated', description: `Tracking #${trackingInput} saved. Marked as Shipped.` });
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder((prev: any) => ({ ...prev, carrier: carrierInput || 'Delhivery', trackingNumber: trackingInput, status: 'Shipped' }));
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update tracking info.' });
+    } finally {
+      setIsUpdatingTracking(false);
+    }
+  };
+
+  const handlePrintSlip = (order: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const itemsHtml = order.items?.map((item: any) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+          <strong>${item.name}</strong>
+          ${item.selectedColor || item.color ? `<div style="font-size: 11px; color: #6d28d9; margin-top: 3px;">Colour: <strong>${item.selectedColor || item.color}</strong></div>` : ''}
+          ${item.selectedCapacity || item.capacity ? `<div style="font-size: 11px; color: #0284c7; margin-top: 2px;">Capacity: <strong>${item.selectedCapacity || item.capacity}</strong></div>` : ''}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold;">${item.quantity || 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">₹${((item.price || 0) * (item.quantity || 1)).toLocaleString()}</td>
+      </tr>
+    `).join('') || '';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Packing Slip - #${order.id?.slice(0, 8).toUpperCase()}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; color: #1e293b; max-width: 650px; margin: auto; }
+            .header { border-bottom: 2px dashed #cbd5e1; padding-bottom: 14px; margin-bottom: 18px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+            th { text-align: left; padding: 8px; background: #f8fafc; font-size: 11px; text-transform: uppercase; color: #64748b; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2 style="margin: 0; color: #4338ca;">GiftArtStudio Logistics</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Order Packing & Shipping Dispatch Slip</div>
+            <div style="margin-top: 8px;"><strong>Order ID:</strong> #${order.id} | <strong>Date:</strong> ${order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'Recent'}</div>
+          </div>
+
+          <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b;">DISPATCH TO (CUSTOMER ADDRESS):</div>
+            <div style="font-size: 14px; font-weight: bold; margin-top: 4px;">${order.shippingAddress?.fullName || order.customerName || 'Customer'}</div>
+            <div style="font-size: 13px; margin-top: 2px;">${order.shippingAddress?.addressLine1 || order.shippingAddress?.line1 || order.shippingAddress?.address || ''}</div>
+            ${order.shippingAddress?.addressLine2 || order.shippingAddress?.line2 ? `<div style="font-size: 12px; color: #475569;">${order.shippingAddress?.addressLine2 || order.shippingAddress?.line2}</div>` : ''}
+            <div style="font-size: 13px; font-weight: bold; margin-top: 2px;">${order.shippingAddress?.city}, ${order.shippingAddress?.state} - ${order.shippingAddress?.postalCode || order.shippingAddress?.pincode}</div>
+            <div style="font-size: 12px; margin-top: 4px;"><strong>Phone:</strong> ${order.shippingAddress?.phone || order.phone || '—'}</div>
+          </div>
+
+          <div style="font-size: 12px; font-weight: bold; margin-top: 14px;">ITEMS TO PACK &amp; SHIP:</div>
+          <table>
+            <thead>
+              <tr><th>Item & Specifications (Colour & Capacity)</th><th style="text-align: center;">Qty</th><th style="text-align: right;">Amount</th></tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 20px; border-top: 2px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between;">
+            <div><strong>Payment:</strong> ${order.paymentMethod === 'cod' ? 'COD Partial (₹100 Paid Advance)' : 'Prepaid Online Full'}</div>
+            <div><strong>Total Value:</strong> ₹${(order.total || 0).toLocaleString()}</div>
+          </div>
+          <script>window.onload = function() { window.print(); };</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   // Real collection from Firestore
   const ordersQuery = useMemo(() => {
@@ -409,45 +500,180 @@ export default function OrdersPage() {
       {/* Details Dialog */}
       {selectedOrder && (
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="max-w-xl rounded-[2rem] p-6 max-h-[85vh] overflow-y-auto">
-            <DialogHeader className="border-b border-slate-100 pb-3">
-              <DialogTitle className="text-lg font-black text-slate-800">
-                Order #{selectedOrder.id?.slice(0, 8).toUpperCase()}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400">
-                Customer & fulfillment details
-              </DialogDescription>
+          <DialogContent className="max-w-2xl rounded-[2.5rem] p-6 md:p-8 max-h-[88vh] overflow-y-auto">
+            <DialogHeader className="border-b border-slate-100 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-black text-slate-800">
+                    Order #{selectedOrder.id?.slice(0, 8).toUpperCase()}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs font-bold text-slate-400">
+                    Placed on {selectedOrder.createdAt?.toDate ? selectedOrder.createdAt.toDate().toLocaleString() : 'Recent'}
+                  </DialogDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePrintSlip(selectedOrder)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-xs border border-purple-200 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print Packing Slip</span>
+                  </button>
+                  <div className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 font-black text-xs">
+                    {selectedOrder.status || 'Pending'}
+                  </div>
+                </div>
+              </div>
             </DialogHeader>
 
-            <div className="space-y-4 pt-2">
-              <div className="bg-slate-50 p-4 rounded-xl space-y-2 text-xs">
-                <p><strong>Name:</strong> {selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</p>
-                <p><strong>Phone:</strong> {selectedOrder.phone || selectedOrder.shippingAddress?.phone || '—'}</p>
-                <p><strong>Email:</strong> {selectedOrder.email || selectedOrder.userEmail || '—'}</p>
-                <p><strong>Address:</strong> {selectedOrder.shippingAddress?.addressLine1 || selectedOrder.shippingAddress?.address || '—'}, {selectedOrder.shippingAddress?.city} - {selectedOrder.shippingAddress?.postalCode || selectedOrder.shippingAddress?.pincode}</p>
-                <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod === 'cod' ? 'COD Partial (₹100 Paid Online)' : 'Full Online (Razorpay)'}</p>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-black uppercase text-slate-400 mb-2">Items</h4>
-                <div className="space-y-2">
-                  {selectedOrder.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100">
-                      <div className="text-xs">
-                        <p className="font-bold text-slate-800">{item.name}</p>
-                        <p className="text-[10px] text-slate-400">Qty: {item.quantity || 1}</p>
+            <div className="space-y-6 pt-4">
+              {/* Customer & Shipping info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Customer Details</h4>
+                  <p className="font-bold text-sm text-slate-800">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</p>
+                  <p className="text-xs text-slate-600 font-semibold">{selectedOrder.phone || selectedOrder.shippingAddress?.phone || 'No phone'}</p>
+                  <p className="text-xs text-slate-600">{selectedOrder.email || selectedOrder.userEmail || 'No email'}</p>
+                  <div className="pt-2">
+                    <span className="text-[10px] font-bold text-slate-400">Payment: </span>
+                    <span className="text-xs font-bold text-purple-700">
+                      {selectedOrder.paymentMethod === 'cod' ? 'COD (₹100 Paid Advance)' : 'Prepaid Full (Razorpay)'}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Complete Delivery Address</h4>
+                  <div className="text-xs text-slate-700 font-semibold leading-relaxed">
+                    <p className="text-slate-900 font-bold">{selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}</p>
+                    <p>{selectedOrder.shippingAddress?.addressLine1 || selectedOrder.shippingAddress?.line1 || selectedOrder.shippingAddress?.address || '—'}</p>
+                    {(selectedOrder.shippingAddress?.addressLine2 || selectedOrder.shippingAddress?.line2) && (
+                      <p className="text-slate-500">{selectedOrder.shippingAddress?.addressLine2 || selectedOrder.shippingAddress?.line2}</p>
+                    )}
+                    <p className="font-bold text-slate-800">
+                      {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.postalCode || selectedOrder.shippingAddress?.pincode}
+                    </p>
+                    {selectedOrder.shippingAddress?.gpsCoords && (
+                      <div className="pt-2 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <MapPin className="w-3 h-3 text-emerald-600" />
+                          GPS: {selectedOrder.shippingAddress.gpsCoords.lat.toFixed(4)}, {selectedOrder.shippingAddress.gpsCoords.lng.toFixed(4)}
+                        </span>
+                        <a 
+                          href={`https://maps.google.com/?q=${selectedOrder.shippingAddress.gpsCoords.lat},${selectedOrder.shippingAddress.gpsCoords.lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-purple-600 hover:underline flex items-center gap-0.5 font-bold"
+                        >
+                          View Map <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
                       </div>
-                      <span className="font-black text-xs text-slate-800">
-                        ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-purple-50 text-purple-900 font-bold flex justify-between text-xs">
-                <span>Total</span>
-                <span>₹{(Number(selectedOrder.total) || 0).toLocaleString()}</span>
+              {/* Shipping Dispatch & AWB Tracking Tool */}
+              <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-purple-900 font-black text-xs">
+                    <Truck className="w-4 h-4 text-purple-600" />
+                    <span>Shipping Logistics &amp; Dispatch</span>
+                  </div>
+                  {selectedOrder.trackingNumber && (
+                    <span className="text-[10px] font-bold bg-white text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+                      AWB: {selectedOrder.trackingNumber} ({selectedOrder.carrier || 'Delhivery'})
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    value={carrierInput}
+                    onChange={(e) => setCarrierInput(e.target.value)}
+                    className="h-9 px-3 rounded-xl bg-white border border-purple-200 text-xs font-bold text-slate-700 focus:outline-none"
+                  >
+                    <option value="Delhivery">Delhivery</option>
+                    <option value="Blue Dart">Blue Dart</option>
+                    <option value="DTDC">DTDC</option>
+                    <option value="India Post">India Post</option>
+                    <option value="Xpressbees">Xpressbees</option>
+                    <option value="Shadowfax">Shadowfax</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    value={trackingInput}
+                    onChange={(e) => setTrackingInput(e.target.value)}
+                    placeholder="Enter AWB / Tracking #"
+                    className="h-9 px-3 rounded-xl bg-white border border-purple-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                  />
+
+                  <button
+                    onClick={() => handleUpdateShipping(selectedOrder.id)}
+                    disabled={isUpdatingTracking || !trackingInput.trim()}
+                    className="h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    {isUpdatingTracking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
+                    <span>Mark Dispatched</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Items List with Colour & Capacity variants */}
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">Order Items (Variants &amp; Specs)</h4>
+                <div className="space-y-3">
+                  {selectedOrder.items?.map((item: any, i: number) => {
+                    const itemColor = item.selectedColor || item.color;
+                    const itemCapacity = item.selectedCapacity || item.capacity;
+
+                    return (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white gap-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden relative shrink-0 border border-slate-100">
+                            {item.image || item.variantImage ? (
+                              <img src={item.image || item.variantImage} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">📦</div>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-bold text-xs text-slate-800 leading-snug">{item.name}</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Colour badge */}
+                              {itemColor && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                  <span>Colour:</span>
+                                  <span className="font-extrabold">{itemColor}</span>
+                                </span>
+                              )}
+
+                              {/* Capacity badge */}
+                              {itemCapacity && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">
+                                  <span>Capacity:</span>
+                                  <span className="font-extrabold">{itemCapacity}</span>
+                                </span>
+                              )}
+
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                Qty: {item.quantity || 1}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="font-black text-sm text-slate-800 shrink-0 self-end sm:self-center">
+                          ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50 text-purple-900 font-bold flex justify-between items-center text-xs">
+                <span>Total Value</span>
+                <span className="text-base font-black">₹{(Number(selectedOrder.total) || 0).toLocaleString()}</span>
               </div>
             </div>
           </DialogContent>

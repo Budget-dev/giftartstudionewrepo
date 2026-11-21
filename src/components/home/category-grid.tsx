@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const DEFAULT_MOCK = {
@@ -74,14 +74,19 @@ export function CategoryGrid({ cms }: { cms?: any }) {
   return (
     <section className="py-12 md:py-20 bg-white relative overflow-hidden">
       <div className="container mx-auto px-4">
-        {/* Centered Heading */}
-        <div className="flex flex-col items-center text-center justify-center w-full mb-10 md:mb-16">
+        {/* Centered Heading with Arrow Navigation helper */}
+        <div className="flex flex-col items-center text-center justify-center w-full mb-8 md:mb-14">
           <h2 className="font-headline font-black text-3xl md:text-5xl lg:text-6xl text-slate-800 tracking-tight text-center mx-auto">
             Shop By <span className="text-sky-500">Category</span>
           </h2>
+          <div className="hidden md:flex items-center gap-2 mt-3 text-xs font-bold text-slate-400">
+            <span>Browse collections</span>
+            <ArrowRight className="w-3.5 h-3.5 text-sky-500" />
+            <span className="text-sky-600 font-extrabold">Use arrows or swipe to explore</span>
+          </div>
         </div>
 
-        {/* Mobile View: 2x2 Grid */}
+        {/* Mobile View: 2x2 Grid with Arrow Indicator */}
         <div className="md:hidden grid grid-cols-2 gap-4 pb-8">
           {cards.slice(0, 4).map((cat: any, i: number) => {
             const colors = [
@@ -103,13 +108,13 @@ export function CategoryGrid({ cms }: { cms?: any }) {
               >
                 <Link 
                   href={cat.url || '#'}
-                  className="block rounded-[2.5rem] aspect-[3/3.6] relative border-4 border-white shadow-lg overflow-visible"
+                  className="block rounded-[2.5rem] aspect-[3/3.6] relative border-4 border-white shadow-lg overflow-visible group"
                   style={{ backgroundColor: cat.backgroundColor || DEFAULT_MOCK.cards[i % 4]?.backgroundColor || '#F1F5F9' }}
                 >
-                  {/* Badge with Category Name */}
+                  {/* Badge with Category Name & Arrow Indicator */}
                   <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full px-2 flex justify-center">
                     <div className={cn(
-                      "bg-white border-[1.5px] px-3 py-1 rounded-full text-center shadow-sm max-w-[90%]",
+                      "bg-white border-[1.5px] px-3 py-1 rounded-full text-center shadow-sm max-w-[92%] flex items-center gap-1",
                       colorPair.border
                     )}>
                       <span className={cn(
@@ -118,6 +123,7 @@ export function CategoryGrid({ cms }: { cms?: any }) {
                       )}>
                         {cat.title}
                       </span>
+                      <ArrowRight className={cn("w-2.5 h-2.5 shrink-0", colorPair.text)} />
                     </div>
                   </div>
 
@@ -139,47 +145,82 @@ export function CategoryGrid({ cms }: { cms?: any }) {
           })}
         </div>
 
-        {/* Desktop View: Carousel */}
-        <div className="hidden md:block relative overflow-hidden" ref={emblaRef}>
-          <div className="flex -ml-4 md:-ml-8 pb-12 md:pb-16">
-            {cards.map((cat: any, i: number) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.5 }}
-                viewport={{ once: true }}
-                className="flex-[0_0_75%] sm:flex-[0_0_45%] md:flex-[0_0_31%] min-w-0 pl-4 md:pl-8 group relative"
-              >
-                <Link 
-                  href={cat.url || '#'}
-                  className={cn(
-                    "block rounded-[2.5rem] md:rounded-[3.5rem] aspect-[3/3.4] relative transition-all duration-700 hover:shadow-[0_45px_90px_-20px_rgba(0,0,0,0.25)] border-4 border-white shadow-lg overflow-visible"
-                  )}
-                  style={{ backgroundColor: cat.backgroundColor || DEFAULT_MOCK.cards[i % 4]?.backgroundColor || '#F1F5F9' }}
-                >
-                  <div className="p-6 md:p-8 flex flex-col items-center">
-                    {/* Centered Larger and Bolder Title */}
-                    <h3 className="font-headline font-black text-xl md:text-2xl lg:text-3xl tracking-widest text-white drop-shadow-md mt-2 md:mt-4 uppercase">
-                      {cat.title}
-                    </h3>
-                  </div>
+        {/* Desktop View: Carousel with Navigation Arrows */}
+        <div className="hidden md:block relative">
+          {/* Left Arrow Button */}
+          <button
+            onClick={scrollPrev}
+            disabled={!canScrollPrev}
+            aria-label="Previous categories"
+            className={cn(
+              "absolute -left-4 lg:-left-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white text-slate-700 shadow-xl border border-slate-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95 hover:bg-slate-50",
+              !canScrollPrev && "opacity-30 cursor-not-allowed hover:scale-100"
+            )}
+          >
+            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+          </button>
 
-                  {/* Image positioned absolutely to overflow at the bottom (Direct child of relative Link) */}
-                  {cat.imageUrl && (
-                    <div className="absolute -bottom-10 md:-bottom-16 left-1/2 -translate-x-1/2 w-[110%] md:w-[120%] h-[95%] md:h-[105%] transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 origin-bottom pointer-events-none">
-                      <Image 
-                        src={cat.imageUrl} 
-                        alt={cat.title} 
-                        fill 
-                        className="object-contain object-bottom drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
-                        unoptimized
-                      />
+          {/* Right Arrow Button */}
+          <button
+            onClick={scrollNext}
+            disabled={!canScrollNext}
+            aria-label="Next categories"
+            className={cn(
+              "absolute -right-4 lg:-right-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-white text-slate-700 shadow-xl border border-slate-100 flex items-center justify-center transition-all hover:scale-110 active:scale-95 hover:bg-slate-50",
+              !canScrollNext && "opacity-30 cursor-not-allowed hover:scale-100"
+            )}
+          >
+            <ChevronRight className="w-6 h-6 stroke-[2.5]" />
+          </button>
+
+          {/* Carousel Viewport */}
+          <div className="overflow-hidden px-2" ref={emblaRef}>
+            <div className="flex -ml-4 md:-ml-8 pb-12 md:pb-16">
+              {cards.map((cat: any, i: number) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="flex-[0_0_75%] sm:flex-[0_0_45%] md:flex-[0_0_31%] min-w-0 pl-4 md:pl-8 group relative"
+                >
+                  <Link 
+                    href={cat.url || '#'}
+                    className={cn(
+                      "block rounded-[2.5rem] md:rounded-[3.5rem] aspect-[3/3.4] relative transition-all duration-700 hover:shadow-[0_45px_90px_-20px_rgba(0,0,0,0.25)] border-4 border-white shadow-lg overflow-visible"
+                    )}
+                    style={{ backgroundColor: cat.backgroundColor || DEFAULT_MOCK.cards[i % 4]?.backgroundColor || '#F1F5F9' }}
+                  >
+                    <div className="p-6 md:p-8 flex flex-col items-center">
+                      {/* Centered Title */}
+                      <h3 className="font-headline font-black text-xl md:text-2xl lg:text-3xl tracking-widest text-white drop-shadow-md mt-2 md:mt-4 uppercase">
+                        {cat.title}
+                      </h3>
+
+                      {/* Arrow Explore Indicator */}
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider group-hover:bg-white group-hover:text-slate-900 transition-all shadow-sm">
+                        <span>Explore</span>
+                        <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
-                  )}
-                </Link>
-              </motion.div>
-            ))}
+
+                    {/* Image positioned absolutely */}
+                    {cat.imageUrl && (
+                      <div className="absolute -bottom-10 md:-bottom-16 left-1/2 -translate-x-1/2 w-[110%] md:w-[120%] h-[95%] md:h-[105%] transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 origin-bottom pointer-events-none">
+                        <Image 
+                          src={cat.imageUrl} 
+                          alt={cat.title} 
+                          fill 
+                          className="object-contain object-bottom drop-shadow-[0_20px_20px_rgba(0,0,0,0.25)]"
+                          unoptimized
+                        />
+                      </div>
+                    )}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
 

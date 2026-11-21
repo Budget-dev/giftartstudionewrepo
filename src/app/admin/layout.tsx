@@ -41,9 +41,21 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [globalSearch, setGlobalSearch] = useState('');
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+  const [shippingStaffName, setShippingStaffName] = useState<string>('');
 
   const isLoginPage = pathname === '/admin/login';
   const loading = authLoading;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRole = localStorage.getItem('admin_role');
+      setAdminRole(storedRole);
+      setShippingStaffName(localStorage.getItem('shipping_staff_name') || 'Shipping Logistics Staff');
+    }
+  }, [pathname]);
+
+  const isShippingRole = adminRole === 'shipping';
 
   // Real pending notifications / orders count
   const pendingOrdersQuery = useMemo(() => {
@@ -54,14 +66,34 @@ export default function AdminLayout({
   const notificationCount = pendingOrders?.length || 0;
 
   useEffect(() => {
-    if (!loading && !isLoginPage) {
-      if (!user) {
-        router.push('/admin/login');
-      } else if (user.email !== SUPER_ADMIN_EMAIL) {
-        router.push('/');
+    if (!isLoginPage) {
+      if (isShippingRole) {
+        // Shipping personnel is restricted ONLY to orders
+        if (!pathname.startsWith('/admin/orders')) {
+          router.push('/admin/orders');
+        }
+        return;
+      }
+
+      if (!loading) {
+        if (!user) {
+          router.push('/admin/login');
+        } else if (user.email !== SUPER_ADMIN_EMAIL) {
+          router.push('/');
+        }
       }
     }
-  }, [user, loading, router, isLoginPage]);
+  }, [user, loading, router, isLoginPage, isShippingRole, pathname]);
+
+  const handleSignOut = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_role');
+      localStorage.removeItem('shipping_staff_name');
+      document.cookie = "admin_role=; path=/; max-age=0";
+    }
+    await signOut(auth);
+    router.push('/admin/login');
+  };
 
   // Handle global search on enter
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -70,6 +102,72 @@ export default function AdminLayout({
       router.push(`/admin/orders?search=${encodeURIComponent(globalSearch.trim())}`);
     }
   };
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // Allow Shipping Personnel directly into /admin/orders
+  if (isShippingRole) {
+    return (
+      <div className="flex min-h-screen bg-[#f8f9fe]">
+        <AdminSidebar />
+        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+          {/* Shipping Top Header */}
+          <header className="h-18 bg-white/90 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30 transition-all">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                placeholder="Search orders to pack or ship..."
+                className="w-full h-10 pl-11 pr-4 rounded-full bg-slate-50 border border-slate-200/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all shadow-inner"
+              />
+            </form>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 font-bold text-xs">
+                <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse" />
+                <span>Shipping &amp; Fulfillment Portal</span>
+              </div>
+
+              {/* Shipping Staff Profile */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2.5 p-1.5 pl-2 rounded-full hover:bg-slate-50 transition-colors border border-slate-200/60">
+                    <div className="w-7 h-7 rounded-full bg-purple-600 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
+                      S
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 hidden md:inline">Shipping Staff</span>
+                    <ChevronDown className="w-3 h-3 text-slate-400 mr-1" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-slate-100">
+                  <div className="px-3 py-2">
+                    <p className="text-xs font-black text-slate-800">{shippingStaffName}</p>
+                    <p className="text-[10px] text-purple-600 font-bold">Role: Shipping Personnel</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+
+          <div className="p-6 md:p-8 flex-1">
+            {children}
+          </div>
+        </main>
+        <Toaster />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -82,10 +180,6 @@ export default function AdminLayout({
     );
   }
 
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
   if (!user || user.email !== SUPER_ADMIN_EMAIL) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
@@ -96,11 +190,11 @@ export default function AdminLayout({
           <div className="space-y-2">
             <h2 className="text-2xl font-black text-slate-800">Access Restricted</h2>
             <p className="text-xs text-slate-500 font-medium">
-              This panel is reserved for the primary owner. Unauthorized access attempts are restricted.
+              This panel is reserved for authorized staff. Unauthorized access attempts are restricted.
             </p>
           </div>
           <Button asChild className="w-full h-12 rounded-xl bg-slate-900 font-bold text-xs uppercase tracking-wider">
-            <Link href="/">Return to Store</Link>
+            <Link href="/admin/login">Go to Staff Login</Link>
           </Button>
         </div>
       </div>
@@ -176,7 +270,7 @@ export default function AdminLayout({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => signOut(auth).then(() => router.push('/admin/login'))}
+                  onClick={handleSignOut}
                   className="flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out

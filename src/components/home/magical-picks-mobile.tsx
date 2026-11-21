@@ -8,10 +8,26 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
 
 const DEFAULT_REELS = [
-  { title: "Heartwarming Moments", thumbnailUrl: "https://picsum.photos/seed/mreel1/300/533", videoUrl: "" },
-  { title: "Travel Adventures", thumbnailUrl: "https://picsum.photos/seed/mreel2/300/533", videoUrl: "" },
-  { title: "Celebration Vibes", thumbnailUrl: "https://picsum.photos/seed/mreel3/300/533", videoUrl: "" },
-  { title: "Gift Happiness", thumbnailUrl: "https://picsum.photos/seed/mreel4/300/533", videoUrl: "" }
+  { 
+    title: "Handcrafted Love", 
+    thumbnailUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&auto=format&fit=crop&q=80", 
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+  },
+  { 
+    title: "Travel Bottles & Mugs", 
+    thumbnailUrl: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=500&auto=format&fit=crop&q=80", 
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" 
+  },
+  { 
+    title: "Hamper Unboxing", 
+    thumbnailUrl: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=500&auto=format&fit=crop&q=80", 
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" 
+  },
+  { 
+    title: "Name Engraving", 
+    thumbnailUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=80", 
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+  }
 ];
 
 export function MagicalPicksMobile({ cms }: { cms?: any }) {
@@ -78,7 +94,7 @@ export function MagicalPicksMobile({ cms }: { cms?: any }) {
       <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
         <DialogContent className="max-w-sm p-0 overflow-hidden bg-black border-none rounded-[3rem] aspect-[9/16] shadow-2xl">
           <DialogTitle className="sr-only">Magical Reels Player</DialogTitle>
-          <div className="relative h-full w-full">
+          <div className="relative h-full w-full flex flex-col justify-between">
             {selectedVideo && (
               <video 
                 src={selectedVideo} 
@@ -86,8 +102,18 @@ export function MagicalPicksMobile({ cms }: { cms?: any }) {
                 controls 
                 autoPlay 
                 loop
+                playsInline
               />
             )}
+            <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-auto">
+              <a 
+                href="/shop/personalized-gifts"
+                className="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg backdrop-blur-md"
+              >
+                <span>Shop Featured Gifts</span>
+                <span>→</span>
+              </a>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

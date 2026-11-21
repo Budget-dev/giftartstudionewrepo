@@ -90,6 +90,15 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
           p.subcategory?.toLowerCase().includes('passport') ||
           p.name?.toLowerCase().includes('passport')
         );
+      } else if (sub.includes('travel')) {
+        const travelItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('travel') ||
+          p.name?.toLowerCase().includes('travel') ||
+          p.name?.toLowerCase().includes('passport') ||
+          p.subcategory?.toLowerCase().includes('passport') ||
+          p.name?.toLowerCase().includes('bag')
+        );
+        if (travelItems.length > 0) result = travelItems;
       } else if (sub.includes('best-seller')) {
         result = result.filter(p => p.isBestSeller === true || p.subcategory === 'best-sellers');
       } else if (sub.includes('festive')) {

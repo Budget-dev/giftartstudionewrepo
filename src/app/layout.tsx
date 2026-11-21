@@ -11,6 +11,7 @@ import { DynamicSEO } from '@/components/dynamic-seo';
 import { EngagementSystem } from '@/components/engagement-system';
 import { LivePurchaseNotifications } from '@/components/live-purchase-notifications';
 import GrandOpeningOverlay from '@/components/GrandOpeningOverlay';
+import { AnalyticsTracker } from '@/components/analytics-tracker';
 
 export const metadata: Metadata = {
   title: 'GiftArtStudio | Magical Personalized Gifts',
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body className="font-body antialiased selection:bg-primary/30 lg:pb-0 pb-20">
         <FirebaseClientProvider>
           <DynamicSEO />
+          <AnalyticsTracker />
           <CartProvider>
             {children}
             <GrandOpeningOverlay />

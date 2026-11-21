@@ -240,6 +240,16 @@ export default function AdminProductsPage() {
                                   {p.badge}
                                 </span>
                               )}
+                              {p.colors && p.colors.length > 0 && (
+                                <span className="text-[9px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded">
+                                  {p.colors.length} Colours
+                                </span>
+                              )}
+                              {p.capacities && p.capacities.length > 0 && (
+                                <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">
+                                  {p.capacities.length} Sizes
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

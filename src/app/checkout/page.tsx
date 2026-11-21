@@ -334,9 +334,13 @@ export default function CheckoutPage() {
           name: i.name,
           price: i.price,
           qty: i.quantity,
+          image: i.variantImage || i.image || null,
           customization: i.personalizationName || null,
+          personalizationOption: i.personalizationOption || null,
           selectedColor: i.selectedColor || null,
-          selectedCapacity: i.selectedCapacity || null
+          color: i.selectedColor || null,
+          selectedCapacity: i.selectedCapacity || i.selectedSize || null,
+          capacity: i.selectedCapacity || i.selectedSize || null
         })),
         total: total,
         paidAmount: orderInfo.paidAmount,
@@ -347,8 +351,12 @@ export default function CheckoutPage() {
         status: orderInfo.status,
         trackingStatus: 'Order Placed',
         shippingAddress: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          email: formData.email,
           line1: formData.addressLine1,
           line2: formData.addressLine2 || '',
+          address: `${formData.addressLine1}${formData.addressLine2 ? ', ' + formData.addressLine2 : ''}`,
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode,

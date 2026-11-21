@@ -11,10 +11,30 @@ import Image from 'next/image';
 const DEFAULT_MOCK = {
   title: "Magical Reels",
   cards: [
-    { id: 1, title: "Handcrafting Your Gifts", thumbnailUrl: "https://picsum.photos/seed/reels-1/450/800", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
-    { id: 2, title: "Studio Magic", thumbnailUrl: "https://picsum.photos/seed/reels-2/450/800", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" },
-    { id: 3, title: "Maya's Unboxing", thumbnailUrl: "https://picsum.photos/seed/reels-3/450/800", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" },
-    { id: 4, title: "Gift Preview", thumbnailUrl: "https://picsum.photos/seed/reels-4/450/800", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" }
+    { 
+      id: 1, 
+      title: "Handcrafting Your Gifts", 
+      thumbnailUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&auto=format&fit=crop&q=80", 
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
+    },
+    { 
+      id: 2, 
+      title: "Studio Magic & Engraving", 
+      thumbnailUrl: "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=500&auto=format&fit=crop&q=80", 
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" 
+    },
+    { 
+      id: 3, 
+      title: "Festive Hamper Unboxing", 
+      thumbnailUrl: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=500&auto=format&fit=crop&q=80", 
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" 
+    },
+    { 
+      id: 4, 
+      title: "Personalized Travel Preview", 
+      thumbnailUrl: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=80", 
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+    }
   ]
 };
 
@@ -86,7 +106,7 @@ export function MagicalMedia({ cms }: { cms?: any }) {
       <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
         <DialogContent className="max-w-sm p-0 overflow-hidden bg-black border-none rounded-[3rem] aspect-[9/16] shadow-2xl">
           <DialogTitle className="sr-only">Magical Reel Player</DialogTitle>
-          <div className="relative h-full w-full">
+          <div className="relative h-full w-full flex flex-col justify-between">
             {selectedVideo && (
               <video 
                 src={selectedVideo} 
@@ -94,8 +114,18 @@ export function MagicalMedia({ cms }: { cms?: any }) {
                 controls 
                 autoPlay 
                 loop
+                playsInline
               />
             )}
+            <div className="absolute bottom-5 left-5 right-5 z-20 pointer-events-auto">
+              <Link
+                href="/shop/personalized-gifts"
+                className="w-full py-3 px-5 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl backdrop-blur-md transition-all hover:scale-105 active:scale-95"
+              >
+                <span>Shop Featured Gifts</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -37,6 +37,9 @@ export function generateStaticParams() {
     { slug: ['kids', 'lifestyle'] },
     { slug: ['kids', 'toys'] },
     { slug: ['kids', 'hampers'] },
+    { slug: ['personalized-gifts', 'travelling'] },
+    { slug: ['accessories', 'travelling'] },
+    { slug: ['kids', 'travelling'] },
   ];
 }
 

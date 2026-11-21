@@ -15,6 +15,14 @@ export interface ProductSEO {
   noIndex?: boolean;
 }
 
+export interface ProductColorVariant {
+  name: string;
+  hex: string;
+  images?: string[]; // Color-specific photos
+  stockStatus?: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  stock?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -36,9 +44,10 @@ export interface Product {
   isNew?: boolean;
   isBestSeller?: boolean;
   inventoryStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  stock?: number;
   couponCode?: string;
   couponDiscount?: number;
-  colors?: { name: string; hex: string }[];
+  colors?: ProductColorVariant[];
   sizes?: string[];
   capacities?: string[]; // e.g. ['500 ml', '750 ml']
   features?: string[];
@@ -63,14 +72,15 @@ export interface CartItem extends Product {
   selectedCapacity?: string;
   personalizationName?: string;
   personalizationOption?: string;
+  variantImage?: string;
 }
 
 export const CATEGORIES_MAP: Record<string, string[]> = {
   'new': ['new-collection', 'new-launch', 'best-sellers', 'festive'],
-  'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'corporate-gifts'],
-  'kids': ['bags', 'water-bottles', 'lunch-boxes', 'kids-gifts', 'stationery', 'toys', 'umbrellas', 'combos'],
-  'adults': ['mens', 'womens', 'unisex'],
-  'accessories': ['bags', 'travel-combo', 'gift-boxes', 'desk', 'combos']
+  'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts'],
+  'kids': ['bags', 'water-bottles', 'lunch-boxes', 'kids-gifts', 'stationery', 'toys', 'umbrellas', 'combos', 'travelling'],
+  'adults': ['mens', 'womens', 'unisex', 'travelling'],
+  'accessories': ['bags', 'travel-combo', 'travelling', 'gift-boxes', 'desk', 'combos']
 };
 
 export const ALL_PRODUCTS: Product[] = [];

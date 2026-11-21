@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -21,7 +21,8 @@ import {
   Wand2,
   PawPrint,
   CreditCard,
-  PlusCircle
+  PlusCircle,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
@@ -50,6 +51,7 @@ const CATALOG_GROUPS = [
     icon: Gift,
     hrefPrefix: '/admin/products/personalized-gifts',
     items: [
+      { label: 'Travelling', sub: 'travelling' },
       { label: 'Mugs', sub: 'mugs' },
       { label: 'Bottles', sub: 'bottles' },
       { label: 'Passport Covers', sub: 'passport-covers' },
@@ -88,6 +90,7 @@ const CATALOG_GROUPS = [
     icon: Shapes,
     hrefPrefix: '/admin/products/accessories',
     items: [
+      { label: 'Travelling', sub: 'travelling' },
       { label: 'Bags', sub: 'bags' },
       { label: 'Travel Accessories', sub: 'travel-combo' },
       { label: 'Gift Boxes', sub: 'gift-boxes' },
@@ -127,6 +130,13 @@ export function AdminSidebar() {
   const auth = useAuth();
   const db = useFirestore();
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [isShippingRole, setIsShippingRole] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsShippingRole(localStorage.getItem('admin_role') === 'shipping');
+    }
+  }, [pathname]);
 
   // Real pending orders count for the badge
   const pendingOrdersQuery = useMemo(() => {
@@ -141,6 +151,75 @@ export function AdminSidebar() {
       prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
     );
   };
+
+  if (isShippingRole) {
+    return (
+      <aside className="w-72 bg-white border-r border-slate-100/80 flex flex-col h-screen sticky top-0 overflow-y-auto scrollbar-hide shadow-sm z-40">
+        <div className="p-6 pb-4 shrink-0 border-b border-slate-50">
+          <Link href="/admin/orders" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
+              <Truck className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="font-extrabold text-base text-slate-800 tracking-tight">GiftArt Logistics</span>
+              <span className="text-[10px] font-bold text-purple-600">Shipping Desk</span>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-3">
+          <Link
+            href="/admin/orders"
+            className={cn(
+              "flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all shadow-sm",
+              pathname.startsWith('/admin/orders')
+                ? "bg-purple-600 text-white shadow-purple-200"
+                : "text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingBag className="w-4 h-4" />
+              <span>Orders &amp; Dispatch</span>
+            </div>
+            {pendingCount > 0 && (
+              <span className={cn(
+                "text-[10px] font-black px-2 py-0.5 rounded-full",
+                pathname.startsWith('/admin/orders') ? "bg-white/20 text-white" : "bg-purple-100 text-purple-700"
+              )}>
+                {pendingCount}
+              </span>
+            )}
+          </Link>
+
+          <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 text-[11px] text-purple-900 space-y-1.5 mt-6">
+            <div className="flex items-center gap-1.5 font-bold text-purple-800">
+              <span className="w-2 h-2 rounded-full bg-purple-600" />
+              <span>Shipping Role Active</span>
+            </div>
+            <p className="text-[10px] text-purple-700 leading-relaxed">
+              You have access to customer delivery details, colour/capacity specifications, and packing slips. Sensitive financials and store products are restricted.
+            </p>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-slate-100 shrink-0">
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('admin_role');
+                localStorage.removeItem('shipping_staff_name');
+                document.cookie = "admin_role=; path=/; max-age=0";
+              }
+              signOut(auth).then(() => router.push('/admin/login'));
+            }}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 w-full rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all font-bold text-xs"
+          >
+            <LogOut className="h-4 w-4" /> Sign Out
+          </button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="w-72 bg-white border-r border-slate-100/80 flex flex-col h-screen sticky top-0 overflow-y-auto scrollbar-hide shadow-sm z-40">

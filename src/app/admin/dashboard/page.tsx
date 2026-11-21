@@ -23,9 +23,14 @@ import {
   Loader2,
   Package,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Mail,
+  Smartphone,
+  Share2,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -65,12 +70,14 @@ export default function AdminDashboard() {
   }, [db]);
   const usersCol = useMemo(() => db ? collection(db, 'users') : null, [db]);
   const productsCol = useMemo(() => db ? collection(db, 'products') : null, [db]);
+  const analyticsDocRef = useMemo(() => db ? doc(db, 'analytics', 'link_tracking') : null, [db]);
 
   const { data: orders, loading: ordersLoading } = useCollection<any>(ordersQuery);
   const { data: customers } = useCollection<any>(usersCol);
   const { data: products } = useCollection<any>(productsCol);
+  const { data: analyticsData } = useDoc<any>(analyticsDocRef);
 
-  // Real Metric Calculations
+  // Real Metric Calculations & Customer Tracking
   const stats = useMemo(() => {
     const totalOrders = orders?.length || 0;
     const totalRevenue = orders?.reduce((acc: number, curr: any) => {
@@ -80,13 +87,27 @@ export default function AdminDashboard() {
     const totalCustomers = customers?.length || 0;
     const pendingOrdersCount = orders?.filter((o: any) => (o.status || 'Pending').toLowerCase() === 'pending').length || 0;
 
+    // Track login methods: Email vs Phone OTP
+    const emailUsers = customers?.filter((u: any) => 
+      u.email || u.loginMethod === 'email' || u.authProvider === 'email'
+    ).length || 0;
+
+    const phoneUsers = customers?.filter((u: any) => 
+      u.phoneNumber || u.phone || u.loginMethod === 'phone' || u.authProvider === 'phone'
+    ).length || 0;
+
+    const linkClicks = Number(analyticsData?.linkClicks) || Number(analyticsData?.sharedLinkClicks) || 0;
+
     return {
       totalOrders,
       totalRevenue,
       totalCustomers,
-      pendingOrdersCount
+      pendingOrdersCount,
+      emailUsers,
+      phoneUsers,
+      linkClicks
     };
-  }, [orders, customers]);
+  }, [orders, customers, analyticsData]);
 
   // Tab counts
   const tabCounts = useMemo(() => {
@@ -318,6 +339,80 @@ export default function AdminDashboard() {
             <svg className="w-20 h-9 text-amber-400" viewBox="0 0 100 40" fill="none">
               <path d="M0 15 Q 40 10, 60 25 T 100 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          CUSTOMER ANALYTICS & SHARED LINK TRACKING
+         ======================================================== */}
+      <div className="bg-gradient-to-br from-[#1e1b4b] via-[#0f172a] to-[#2e1065] rounded-[2.2rem] p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-purple-500/20">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-60 h-60 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-black tracking-widest uppercase text-purple-300">Live Traffic & Customer Acquisition</span>
+            </div>
+            <h2 className="text-xl md:text-2xl font-black tracking-tight mt-1">Customer Analytics &amp; Link Tracking</h2>
+            <p className="text-xs text-slate-300 mt-0.5">Real-time stats on registered users, authentication methods, and shared promotional links.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-slate-200">
+              Live Cloud Firestore
+            </span>
+          </div>
+        </div>
+
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          {/* Card 1: Total Customer Registration */}
+          <div className="bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-md rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-300 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Total Customers</span>
+              <Users className="w-4 h-4 text-sky-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-white">{stats.totalCustomers.toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Total registered store members</p>
+            </div>
+          </div>
+
+          {/* Card 2: Email ID Logins */}
+          <div className="bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-md rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-300 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Email ID Sign-ins</span>
+              <Mail className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-emerald-300">{stats.emailUsers.toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Logged in via Email / Password</p>
+            </div>
+          </div>
+
+          {/* Card 3: Mobile Phone / OTP Logins */}
+          <div className="bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-md rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-300 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Mobile Number OTP</span>
+              <Smartphone className="w-4 h-4 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-purple-300">{stats.phoneUsers.toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Logged in via Phone OTP</p>
+            </div>
+          </div>
+
+          {/* Card 4: Shared Link Clicks */}
+          <div className="bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-md rounded-2xl p-5 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-300 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider">Shared Link Clicks</span>
+              <Share2 className="w-4 h-4 text-pink-400" />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-pink-300">{stats.linkClicks.toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Visits from shared store URLs</p>
+            </div>
           </div>
         </div>
       </div>
@@ -667,46 +762,93 @@ export default function AdminDashboard() {
 
             <div className="space-y-6 pt-2">
               {/* Customer & Shipping info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="space-y-1">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Customer Details</h4>
-                  <p className="font-bold text-sm text-slate-800 mt-1">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</p>
-                  <p className="text-xs text-slate-600">{selectedOrder.phone || selectedOrder.shippingAddress?.phone}</p>
-                  <p className="text-xs text-slate-600">{selectedOrder.email || selectedOrder.userEmail}</p>
+                  <p className="font-bold text-sm text-slate-800">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName || 'Customer'}</p>
+                  <p className="text-xs text-slate-600 font-semibold">{selectedOrder.phone || selectedOrder.shippingAddress?.phone || 'No phone'}</p>
+                  <p className="text-xs text-slate-600">{selectedOrder.email || selectedOrder.userEmail || 'No email'}</p>
                 </div>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Delivery Address</h4>
-                  <p className="text-xs text-slate-700 mt-1 font-semibold leading-relaxed">
-                    {selectedOrder.shippingAddress?.addressLine1 || selectedOrder.shippingAddress?.address || 'Standard Address'}<br />
-                    {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.postalCode || selectedOrder.shippingAddress?.pincode}
-                  </p>
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Complete Delivery Address</h4>
+                  <div className="text-xs text-slate-700 font-semibold leading-relaxed">
+                    <p className="text-slate-900 font-bold">{selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}</p>
+                    <p>{selectedOrder.shippingAddress?.addressLine1 || selectedOrder.shippingAddress?.line1 || selectedOrder.shippingAddress?.address || '—'}</p>
+                    {(selectedOrder.shippingAddress?.addressLine2 || selectedOrder.shippingAddress?.line2) && (
+                      <p className="text-slate-500">{selectedOrder.shippingAddress?.addressLine2 || selectedOrder.shippingAddress?.line2}</p>
+                    )}
+                    <p className="font-bold text-slate-800">
+                      {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.postalCode || selectedOrder.shippingAddress?.pincode}
+                    </p>
+                    {selectedOrder.shippingAddress?.gpsCoords && (
+                      <div className="pt-1.5 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <MapPin className="w-3 h-3 text-emerald-600" />
+                          GPS: {selectedOrder.shippingAddress.gpsCoords.lat.toFixed(4)}, {selectedOrder.shippingAddress.gpsCoords.lng.toFixed(4)}
+                        </span>
+                        <a 
+                          href={`https://maps.google.com/?q=${selectedOrder.shippingAddress.gpsCoords.lat},${selectedOrder.shippingAddress.gpsCoords.lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-purple-600 hover:underline flex items-center gap-0.5 font-bold"
+                        >
+                          View Map <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Items List */}
+              {/* Items List with Colour & Capacity variants */}
               <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">Order Items</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3">Order Items (Variants &amp; Specs)</h4>
                 <div className="space-y-3">
-                  {selectedOrder.items?.map((item: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden relative shrink-0">
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">📦</div>
-                          )}
+                  {selectedOrder.items?.map((item: any, i: number) => {
+                    const itemColor = item.selectedColor || item.color;
+                    const itemCapacity = item.selectedCapacity || item.capacity;
+
+                    return (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white gap-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden relative shrink-0 border border-slate-100">
+                            {item.image || item.variantImage ? (
+                              <img src={item.image || item.variantImage} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">📦</div>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-bold text-xs text-slate-800 leading-snug">{item.name}</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Colour variant badge */}
+                              {itemColor && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                  <span>Colour:</span>
+                                  <span className="font-extrabold">{itemColor}</span>
+                                </span>
+                              )}
+
+                              {/* Capacity variant badge */}
+                              {itemCapacity && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 font-bold text-[10px] border border-sky-200">
+                                  <span>Capacity:</span>
+                                  <span className="font-extrabold">{itemCapacity}</span>
+                                </span>
+                              )}
+
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                Qty: {item.quantity || 1}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-xs text-slate-800">{item.name}</p>
-                          <p className="text-[10px] text-slate-400">Qty: {item.quantity || 1} • {item.variant || 'Standard'}</p>
-                        </div>
+                        <p className="font-black text-sm text-slate-800 shrink-0 self-end sm:self-center">
+                          ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString()}
+                        </p>
                       </div>
-                      <p className="font-black text-sm text-slate-800">
-                        ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
