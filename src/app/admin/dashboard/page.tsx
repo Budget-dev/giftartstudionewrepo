@@ -2,20 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { 
-  ShoppingBag, 
-  Users, 
-  CreditCard, 
-  CheckCircle2, 
-  Clock, 
-  Truck, 
-  AlertCircle, 
-  Download, 
-  Search, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  MoreVertical, 
-  Eye, 
+import {
+  ShoppingBag,
+  Users,
+  CreditCard,
+  CheckCircle2,
+  Clock,
+  Truck,
+  AlertCircle,
+  Download,
+  Search,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreVertical,
+  Eye,
   Calendar,
   Sparkles,
   ChevronLeft,
@@ -88,11 +88,11 @@ export default function AdminDashboard() {
     const pendingOrdersCount = orders?.filter((o: any) => (o.status || 'Pending').toLowerCase() === 'pending').length || 0;
 
     // Track login methods: Email vs Phone OTP
-    const emailUsers = customers?.filter((u: any) => 
+    const emailUsers = customers?.filter((u: any) =>
       u.email || u.loginMethod === 'email' || u.authProvider === 'email'
     ).length || 0;
 
-    const phoneUsers = customers?.filter((u: any) => 
+    const phoneUsers = customers?.filter((u: any) =>
       u.phoneNumber || u.phone || u.loginMethod === 'phone' || u.authProvider === 'phone'
     ).length || 0;
 
@@ -201,12 +201,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-7 animate-in fade-in duration-300">
-      
+
       {/* ========================================================
           HERO BANNER (With 3D Teddy Art matching reference)
          ======================================================== */}
       <div className="relative bg-gradient-to-r from-purple-100/50 via-white to-pink-50/60 rounded-[2.2rem] border border-white/80 p-6 md:p-8 shadow-sm overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        
+
         {/* Soft Background Cloud Glows */}
         <div className="absolute top-0 right-1/4 w-60 h-60 bg-purple-200/30 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-10 w-72 h-72 bg-pink-100/40 rounded-full blur-3xl pointer-events-none" />
@@ -232,10 +232,10 @@ export default function AdminDashboard() {
           <span className="absolute -top-3 left-4 text-pink-400 text-lg animate-bounce">💖</span>
           <span className="absolute top-2 -left-3 text-purple-400 text-sm">💜</span>
           <span className="absolute -bottom-1 left-2 text-amber-300 text-sm">⭐</span>
-          
-          <img 
-            src="/auth/teddy_gift.png" 
-            alt="3D Teddy with Gift" 
+
+          <img
+            src="/auth/teddy_gift.png"
+            alt="3D Teddy with Gift"
             className="w-24 md:w-28 h-auto drop-shadow-md select-none transform hover:scale-105 transition-transform"
           />
         </div>
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
           4 STAT CARDS (Live Data from Firestore)
          ======================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-        
+
         {/* Card 1: Total Orders */}
         <div className="bg-white rounded-[1.8rem] p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -421,10 +421,10 @@ export default function AdminDashboard() {
           ALL ORDERS TABLE (Matching Reference Mockup 1:1)
          ======================================================== */}
       <div className="bg-white rounded-[2.2rem] border border-slate-100 shadow-sm overflow-hidden p-6 md:p-8 space-y-5">
-        
+
         {/* Top Table Bar: Title, Status Pills, Export Button */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-100">
-          
+
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <ShoppingBag className="w-4 h-4" />
@@ -544,9 +544,9 @@ export default function AdminDashboard() {
                   const isPaid = order.paymentStatus === 'Paid' || (order.paymentMethod !== 'cod' && !order.paymentStatus);
                   const isCod = order.paymentMethod === 'cod';
 
-                  const formattedDate = order.createdAt?.toDate 
-                    ? order.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + 
-                      ' • ' + order.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                  const formattedDate = order.createdAt?.toDate
+                    ? order.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+                    ' • ' + order.createdAt.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                     : 'Recently';
 
                   return (
@@ -786,7 +786,7 @@ export default function AdminDashboard() {
                           <MapPin className="w-3 h-3 text-emerald-600" />
                           GPS: {selectedOrder.shippingAddress.gpsCoords.lat.toFixed(4)}, {selectedOrder.shippingAddress.gpsCoords.lng.toFixed(4)}
                         </span>
-                        <a 
+                        <a
                           href={`https://maps.google.com/?q=${selectedOrder.shippingAddress.gpsCoords.lat},${selectedOrder.shippingAddress.gpsCoords.lng}`}
                           target="_blank"
                           rel="noreferrer"

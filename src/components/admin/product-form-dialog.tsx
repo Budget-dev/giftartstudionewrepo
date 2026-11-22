@@ -17,6 +17,7 @@ import {
   DollarSign,
   ArrowRight,
   ClipboardPaste,
+  Upload,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,8 @@ const DEFAULT_PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1549465220-
 export interface ColorVariantItem {
   name: string;
   hex: string;
+  price?: string | number; // Colour-specific price (overrides product base price if set)
+  oldPrice?: string | number; // Colour-specific strike-through price
   images: string[];
   stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
   stock: number;
@@ -166,14 +169,16 @@ export function ProductFormDialog({
         setColors(productToEdit.colors.map((c: any) => ({
           name: c.name || 'Color',
           hex: c.hex || '#9333ea',
+          price: c.price !== undefined && c.price !== null ? String(c.price) : '',
+          oldPrice: c.oldPrice !== undefined && c.oldPrice !== null ? String(c.oldPrice) : '',
           images: Array.isArray(c.images) ? c.images : [],
           stockStatus: c.stockStatus || 'In Stock',
           stock: Number(c.stock) || 50
         })));
       } else {
         setColors([
-          { name: 'Royal Blue', hex: '#0284c7', images: [], stockStatus: 'In Stock', stock: 50 },
-          { name: 'Pastel Pink', hex: '#f472b6', images: [], stockStatus: 'In Stock', stock: 50 }
+          { name: 'Royal Blue', hex: '#0284c7', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 },
+          { name: 'Pastel Pink', hex: '#f472b6', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 }
         ]);
       }
 
@@ -207,9 +212,9 @@ export function ProductFormDialog({
       setBadge('None');
       setImageUrls(['']);
       setColors([
-        { name: 'Royal Blue', hex: '#0284c7', images: [], stockStatus: 'In Stock', stock: 50 },
-        { name: 'Pastel Pink', hex: '#f472b6', images: [], stockStatus: 'In Stock', stock: 50 },
-        { name: 'Matte Black', hex: '#1e293b', images: [], stockStatus: 'In Stock', stock: 50 }
+        { name: 'Royal Blue', hex: '#0284c7', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 },
+        { name: 'Pastel Pink', hex: '#f472b6', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 },
+        { name: 'Matte Black', hex: '#1e293b', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 }
       ]);
       setCapacities(['500 ml', '750 ml']);
       setNewCapacityInput('');
@@ -308,8 +313,25 @@ export function ProductFormDialog({
   const handleAddColor = () => {
     setColors(prev => [
       ...prev,
-      { name: `Color ${prev.length + 1}`, hex: '#7e22ce', images: [], stockStatus: 'In Stock', stock: 50 }
+      { name: `Color ${prev.length + 1}`, hex: '#7e22ce', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 }
     ]);
+  };
+
+  const handleFileUploadForColor = (colorIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const dataUrl = loadEvent.target?.result as string;
+        if (dataUrl) {
+          handleAddColorImage(colorIndex, dataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    toast({ title: 'Photo(s) Added', description: `Uploaded to "${colors[colorIndex]?.name}" variant.` });
   };
 
   const handleUpdateColor = (index: number, updates: Partial<ColorVariantItem>) => {
@@ -408,7 +430,30 @@ export function ProductFormDialog({
         oldPrice: oldPriceNum,
         image: primaryImage,
         images: validImages,
-        colors: colors.filter(c => c.name.trim().length > 0),
+        colors: colors
+          .filter(c => c.name.trim().length > 0)
+          .map(c => {
+            const variantObj: any = {
+              name: c.name.trim(),
+              hex: c.hex,
+              images: c.images || [],
+              stockStatus: c.stockStatus || 'In Stock',
+              stock: Number(c.stock) || 50
+            };
+            if (c.price !== undefined && c.price !== null && String(c.price).trim() !== '') {
+              const p = Number(c.price);
+              if (!isNaN(p) && p > 0) {
+                variantObj.price = p;
+              }
+            }
+            if (c.oldPrice !== undefined && c.oldPrice !== null && String(c.oldPrice).trim() !== '') {
+              const op = Number(c.oldPrice);
+              if (!isNaN(op) && op > 0) {
+                variantObj.oldPrice = op;
+              }
+            }
+            return variantObj;
+          }),
         capacities: capacities.filter(c => c.trim().length > 0),
         sizes: capacities.filter(c => c.trim().length > 0),
         description: description.trim() || `Premium handcrafted ${name.trim()} customized specially for you. Made with top-grade materials for lasting memories.`,
@@ -940,11 +985,55 @@ export function ProductFormDialog({
                         </div>
                       </div>
 
+                      {/* Colour Specific Pricing */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-purple-50/60 rounded-xl border border-purple-100">
+                        <div>
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-purple-900 block mb-1">
+                            Price for {colorItem.name || 'this colour'} (₹)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={colorItem.price ?? ''}
+                            onChange={(e) => handleUpdateColor(cIdx, { price: e.target.value })}
+                            placeholder={`Base: ₹${price || '0'}`}
+                            className="h-8 rounded-xl text-xs bg-white border-purple-200 font-bold"
+                          />
+                          <p className="text-[9px] text-purple-600 mt-0.5">Custom price for this colour (or leave blank to use base ₹{price || '0'})</p>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">
+                            Original / MRP (₹)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={colorItem.oldPrice ?? ''}
+                            onChange={(e) => handleUpdateColor(cIdx, { oldPrice: e.target.value })}
+                            placeholder={`Base: ₹${oldPrice || '0'}`}
+                            className="h-8 rounded-xl text-xs bg-white border-slate-200"
+                          />
+                          <p className="text-[9px] text-slate-400 mt-0.5">Optional strike-through MRP for this colour</p>
+                        </div>
+                      </div>
+
                       {/* Colour Specific Photos */}
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                          Photos for "{colorItem.name}" ({colorItem.images?.length || 0} attached)
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Photos for "{colorItem.name}" ({colorItem.images?.length || 0} attached)
+                          </Label>
+                          {/* Device File Upload Button */}
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-purple-400 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] font-bold transition-colors">
+                            <Upload className="w-3 h-3" />
+                            <span>Upload Device Photos</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => handleFileUploadForColor(cIdx, e)}
+                            />
+                          </label>
+                        </div>
 
                         {/* Existing thumbnails for this colour */}
                         {colorItem.images && colorItem.images.length > 0 && (
@@ -998,7 +1087,7 @@ export function ProductFormDialog({
                             }}
                             className="h-8 text-xs font-bold rounded-xl"
                           >
-                            + Add Photo
+                            + Add URL
                           </Button>
                         </div>
                       </div>

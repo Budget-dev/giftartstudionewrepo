@@ -38,11 +38,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: Product, quantity: number, options?: Partial<CartItem>) => {
     setCart(prev => {
+      const itemKey = options?.cartItemId || `${product.id}-${options?.selectedColor || ''}-${options?.selectedCapacity || options?.selectedSize || ''}-${options?.personalizationName || ''}`;
       const existingItemIndex = prev.findIndex(item => 
-        item.id === product.id && 
-        item.selectedColor === options?.selectedColor && 
-        item.selectedSize === options?.selectedSize &&
-        item.personalizationName === options?.personalizationName
+        (item.cartItemId || `${item.id}-${item.selectedColor || ''}-${item.selectedCapacity || item.selectedSize || ''}-${item.personalizationName || ''}`) === itemKey
       );
 
       if (existingItemIndex > -1) {
@@ -51,17 +49,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return newCart;
       }
 
-      return [...prev, { ...product, quantity, ...options }];
+      const effectivePrice = options?.variantPrice || product.price;
+      const effectiveImage = options?.variantImage || product.image;
+
+      return [...prev, {
+        ...product,
+        price: effectivePrice,
+        image: effectiveImage,
+        cartItemId: itemKey,
+        quantity,
+        ...options
+      }];
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = (identifier: string) => {
+    setCart(prev => prev.filter(item => 
+      (item.cartItemId || item.id) !== identifier && item.id !== identifier
+    ));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (identifier: string, quantity: number) => {
     setCart(prev => prev.map(item => 
-      item.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item
+      ((item.cartItemId || item.id) === identifier || item.id === identifier)
+        ? { ...item, quantity: Math.max(1, quantity) }
+        : item
     ));
   };
 

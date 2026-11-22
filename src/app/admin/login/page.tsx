@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
   const [activeTab, setActiveTab] = useState<'admin' | 'shipping'>('admin');
   const [loading, setLoading] = useState(false);
   const [isSetupMode, setIsSetupMode] = useState(false);
-  
+
   // Admin form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
   // Shipping form
   const [shippingId, setShippingId] = useState('');
   const [shippingPasscode, setShippingPasscode] = useState('');
-  
+
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
@@ -68,10 +68,10 @@ export default function AdminLoginPage() {
 
     if (!isValidPass) {
       setLoading(false);
-      toast({ 
-        variant: "destructive", 
-        title: "Invalid Shipping Passcode", 
-        description: "Please enter the authorized shipping staff passcode (e.g., SHIP2024)." 
+      toast({
+        variant: "destructive",
+        title: "Invalid Shipping Passcode",
+        description: "Please enter the authorized shipping staff passcode (e.g., SHIP2024)."
       });
       return;
     }
@@ -82,9 +82,9 @@ export default function AdminLoginPage() {
       localStorage.setItem('shipping_staff_name', shippingId.trim() || 'Logistics Staff');
       document.cookie = "admin_role=shipping; path=/; max-age=86400";
 
-      toast({ 
-        title: "Shipping Access Granted", 
-        description: "Fulfillment & Orders portal unlocked for shipping personnel." 
+      toast({
+        title: "Shipping Access Granted",
+        description: "Fulfillment & Orders portal unlocked for shipping personnel."
       });
 
       router.push('/admin/orders');
@@ -101,7 +101,7 @@ export default function AdminLoginPage() {
       toast({ variant: "destructive", title: "Invalid Email", description: "Setup is restricted to the pre-authorized admin email." });
       return;
     }
-    
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -132,10 +132,10 @@ export default function AdminLoginPage() {
   return (
     <main className="min-h-screen flex flex-col bg-slate-900 overflow-x-hidden">
       <Navbar />
-      
+
       <div className="flex-1 flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-2xl border border-slate-800 text-center space-y-6 relative overflow-hidden">
-          
+
           {/* Role Tabs */}
           <div className="grid grid-cols-2 p-1.5 bg-slate-100 rounded-2xl gap-1">
             <button
@@ -143,8 +143,8 @@ export default function AdminLoginPage() {
               onClick={() => setActiveTab('admin')}
               className={cn(
                 "py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5",
-                activeTab === 'admin' 
-                  ? "bg-white text-indigo-700 shadow-sm" 
+                activeTab === 'admin'
+                  ? "bg-white text-indigo-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -157,8 +157,8 @@ export default function AdminLoginPage() {
               onClick={() => setActiveTab('shipping')}
               className={cn(
                 "py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5",
-                activeTab === 'shipping' 
-                  ? "bg-white text-purple-700 shadow-sm" 
+                activeTab === 'shipping'
+                  ? "bg-white text-purple-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -187,13 +187,13 @@ export default function AdminLoginPage() {
                   <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Admin Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input 
+                    <Input
                       required
-                      type="email" 
+                      type="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
-                      placeholder={ADMIN_EMAIL} 
-                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-indigo-500 bg-slate-50/50" 
+                      placeholder={ADMIN_EMAIL}
+                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-indigo-500 bg-slate-50/50"
                     />
                   </div>
                 </div>
@@ -201,18 +201,18 @@ export default function AdminLoginPage() {
                   <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input 
+                    <Input
                       required
-                      type="password" 
+                      type="password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••" 
-                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-indigo-500 bg-slate-50/50" 
+                      placeholder="••••••••"
+                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-indigo-500 bg-slate-50/50"
                     />
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   disabled={loading}
                   className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg"
                 >
@@ -221,7 +221,7 @@ export default function AdminLoginPage() {
               </form>
 
               <div className="pt-2">
-                <button 
+                <button
                   onClick={() => setIsSetupMode(!isSetupMode)}
                   className="flex items-center justify-center gap-2 w-full text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400 hover:text-indigo-600 transition-colors"
                 >
@@ -250,13 +250,13 @@ export default function AdminLoginPage() {
                   <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Staff ID or Name</Label>
                   <div className="relative">
                     <Truck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input 
+                    <Input
                       required
-                      type="text" 
+                      type="text"
                       value={shippingId}
                       onChange={e => setShippingId(e.target.value)}
-                      placeholder="e.g. shipping@giftartstudio.com or Dispatch Desk" 
-                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-purple-500 bg-slate-50/50" 
+                      placeholder="e.g. shipping@giftartstudio.com or Dispatch Desk"
+                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-purple-500 bg-slate-50/50"
                     />
                   </div>
                 </div>
@@ -265,19 +265,19 @@ export default function AdminLoginPage() {
                   <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Shipping Passcode / PIN</Label>
                   <div className="relative">
                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input 
+                    <Input
                       required
-                      type="password" 
+                      type="password"
                       value={shippingPasscode}
                       onChange={e => setShippingPasscode(e.target.value)}
-                      placeholder="Enter passkey (e.g. SHIP2024)" 
-                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-purple-500 bg-slate-50/50" 
+                      placeholder="Enter passkey (e.g. SHIP2024)"
+                      className="pl-11 h-12 rounded-xl border-2 focus-visible:ring-purple-500 bg-slate-50/50"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1 ml-1">Default staff key: <code className="bg-slate-100 text-purple-700 font-mono px-1.5 py-0.5 rounded">SHIP2024</code></p>
                 </div>
 
-                <Button 
+                <Button
                   disabled={loading}
                   className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg"
                 >

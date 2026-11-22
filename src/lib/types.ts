@@ -18,7 +18,9 @@ export interface ProductSEO {
 export interface ProductColorVariant {
   name: string;
   hex: string;
-  images?: string[]; // Color-specific photos
+  price?: number; // Colour-specific price (overrides product base price if set)
+  oldPrice?: number; // Colour-specific original/strikethrough price
+  images?: string[]; // Colour-specific photos
   stockStatus?: 'In Stock' | 'Low Stock' | 'Out of Stock';
   stock?: number;
 }
@@ -66,6 +68,7 @@ export interface Product {
 }
 
 export interface CartItem extends Product {
+  cartItemId?: string;
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
@@ -73,6 +76,7 @@ export interface CartItem extends Product {
   personalizationName?: string;
   personalizationOption?: string;
   variantImage?: string;
+  variantPrice?: number;
 }
 
 export const CATEGORIES_MAP: Record<string, string[]> = {

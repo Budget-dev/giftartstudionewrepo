@@ -305,12 +305,30 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     return false;
   }, [product.inventoryStatus, activeColorObj]);
 
+  // Dynamic price calculation based on selected colour variant if that colour has its own pricing
+  const currentPrice = useMemo(() => {
+    if (activeColorObj && (activeColorObj as any).price && Number((activeColorObj as any).price) > 0) {
+      return Number((activeColorObj as any).price);
+    }
+    return product.price || 0;
+  }, [activeColorObj, product.price]);
+
+  const currentOldPrice = useMemo(() => {
+    if (activeColorObj && (activeColorObj as any).oldPrice && Number((activeColorObj as any).oldPrice) > 0) {
+      return Number((activeColorObj as any).oldPrice);
+    }
+    if (activeColorObj && (activeColorObj as any).price && Number((activeColorObj as any).price) > 0) {
+      return Math.round(Number((activeColorObj as any).price) * 1.3);
+    }
+    return product.oldPrice || Math.round((product.price || 0) * 1.3);
+  }, [activeColorObj, product.oldPrice, product.price]);
+
   const discountPercentage = useMemo(() => {
-    if (product.oldPrice && product.oldPrice > product.price) {
-      return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+    if (currentOldPrice && currentOldPrice > currentPrice) {
+      return Math.round(((currentOldPrice - currentPrice) / currentOldPrice) * 100);
     }
     return 30; // fallback aesthetic badge
-  }, [product.price, product.oldPrice]);
+  }, [currentPrice, currentOldPrice]);
 
   const skuCode = useMemo(() => {
     if (product.sku) return product.sku;
@@ -333,16 +351,27 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       return;
     }
     const colorPhoto = (activeColorObj && (activeColorObj as any).images && (activeColorObj as any).images[0]) || product.image;
-    addToCart(product, quantity, { 
-      personalizationName,
-      selectedColor,
-      selectedCapacity,
-      personalizationOption: selectedVariantOption,
-      variantImage: colorPhoto
-    });
+    const variantEffectivePrice = currentPrice;
+
+    addToCart(
+      {
+        ...product,
+        price: variantEffectivePrice,
+        oldPrice: currentOldPrice
+      }, 
+      quantity, 
+      { 
+        personalizationName,
+        selectedColor,
+        selectedCapacity,
+        personalizationOption: selectedVariantOption,
+        variantImage: colorPhoto,
+        variantPrice: variantEffectivePrice
+      }
+    );
     toast({ 
       title: "Added to Bag!", 
-      description: `${product.name} (${selectedColor || ''} ${selectedCapacity || ''}) is ready in your cart.` 
+      description: `${product.name} (${selectedColor || ''} • ₹${variantEffectivePrice.toLocaleString()}) added to your cart.` 
     });
   };
 
@@ -353,13 +382,24 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     }
     setIsProcessing(true);
     const colorPhoto = (activeColorObj && (activeColorObj as any).images && (activeColorObj as any).images[0]) || product.image;
-    addToCart(product, quantity, { 
-      personalizationName,
-      selectedColor,
-      selectedCapacity,
-      personalizationOption: selectedVariantOption,
-      variantImage: colorPhoto
-    });
+    const variantEffectivePrice = currentPrice;
+
+    addToCart(
+      {
+        ...product,
+        price: variantEffectivePrice,
+        oldPrice: currentOldPrice
+      }, 
+      quantity, 
+      { 
+        personalizationName,
+        selectedColor,
+        selectedCapacity,
+        personalizationOption: selectedVariantOption,
+        variantImage: colorPhoto,
+        variantPrice: variantEffectivePrice
+      }
+    );
     setTimeout(() => router.push('/checkout'), 350);
   };
 
@@ -530,11 +570,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <div className="flex items-center justify-between pt-1 pb-1 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <span className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-                ₹{product.price.toLocaleString()}
+                ₹{currentPrice.toLocaleString()}
               </span>
-              {product.oldPrice && (
+              {currentOldPrice > currentPrice && (
                 <span className="text-lg sm:text-xl text-slate-400 line-through font-medium">
-                  ₹{product.oldPrice.toLocaleString()}
+                  ₹{currentOldPrice.toLocaleString()}
                 </span>
               )}
               {discountPercentage > 0 && (
@@ -617,19 +657,27 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <div className="grid grid-cols-2 gap-4 pt-1">
             {/* Color Swatches */}
             <div className="space-y-2">
-              <div className="text-xs font-semibold text-slate-700">
-                Colour: <span className="font-bold text-slate-900">{selectedColor || colors[0]?.name}</span>
+              <div className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                <div>
+                  Colour: <span className="font-bold text-slate-900">{selectedColor || colors[0]?.name}</span>
+                </div>
+                {activeColorObj && (activeColorObj as any).price && Number((activeColorObj as any).price) > 0 && (
+                  <span className="text-[11px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                    ₹{Number((activeColorObj as any).price).toLocaleString()}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 {colors.map((c) => {
                   const isSelected = (selectedColor || colors[0]?.name) === c.name;
                   const hasColorImages = Array.isArray((c as any).images) && (c as any).images.length > 0;
+                  const customPrice = (c as any).price && Number((c as any).price) > 0 ? Number((c as any).price) : null;
                   return (
                     <button
                       key={c.name}
                       type="button"
                       onClick={() => handleSelectColor(c.name)}
-                      title={`${c.name}${hasColorImages ? ` (${(c as any).images.length} photos)` : ''}`}
+                      title={`${c.name}${customPrice ? ` - ₹${customPrice.toLocaleString()}` : ''}${hasColorImages ? ` (${(c as any).images.length} photos)` : ''}`}
                       style={{ backgroundColor: c.hex }}
                       className={cn(
                         "w-8 h-8 rounded-full transition-transform shadow-sm relative flex items-center justify-center",
