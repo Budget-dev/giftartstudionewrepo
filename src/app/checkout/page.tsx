@@ -150,6 +150,17 @@ export default function CheckoutPage() {
   };
 
   const shipping = 0;
+  const gstTotal = useMemo(() => {
+    return cart.reduce((acc, item) => {
+      const rate = Number(item.gstRate) || 0;
+      if (rate <= 0) return acc;
+      if (item.gstType === 'flat') {
+        return acc + Math.round(rate * item.quantity);
+      }
+      return acc + Math.round(((item.price * item.quantity) * rate) / 100);
+    }, 0);
+  }, [cart]);
+
   const discount = useMemo(() => {
     if (!appliedCoupon) return 0;
     if (appliedCoupon.discountType === 'Percentage') {
@@ -158,7 +169,7 @@ export default function CheckoutPage() {
     return Math.min(appliedCoupon.value, subtotal);
   }, [appliedCoupon, subtotal]);
 
-  const total = Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal + gstTotal - discount);
   const codAdvanceAmount = Math.min(100, total);
   const codRemainingAmount = Math.max(0, total - codAdvanceAmount);
 
@@ -329,19 +340,28 @@ export default function CheckoutPage() {
         customerName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        items: cart.map(i => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          qty: i.quantity,
-          image: i.variantImage || i.image || null,
-          customization: i.personalizationName || null,
-          personalizationOption: i.personalizationOption || null,
-          selectedColor: i.selectedColor || null,
-          color: i.selectedColor || null,
-          selectedCapacity: i.selectedCapacity || i.selectedSize || null,
-          capacity: i.selectedCapacity || i.selectedSize || null
-        })),
+        items: cart.map(i => {
+          const rate = Number(i.gstRate) || 0;
+          const itemGst = rate <= 0 ? 0 : (i.gstType === 'flat' ? Math.round(rate * i.quantity) : Math.round(((i.price * i.quantity) * rate) / 100));
+          return {
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            qty: i.quantity,
+            gstType: i.gstType || 'percentage',
+            gstRate: rate,
+            gstAmount: itemGst,
+            image: i.variantImage || i.image || null,
+            customization: i.personalizationName || null,
+            personalizationOption: i.personalizationOption || null,
+            selectedColor: i.selectedColor || null,
+            color: i.selectedColor || null,
+            selectedCapacity: i.selectedCapacity || i.selectedSize || null,
+            capacity: i.selectedCapacity || i.selectedSize || null
+          };
+        }),
+        subtotal: subtotal,
+        gstTotal: gstTotal,
         total: total,
         paidAmount: orderInfo.paidAmount,
         codBalance: orderInfo.balanceAmount,
@@ -760,6 +780,7 @@ export default function CheckoutPage() {
 
               <div className="pt-2 border-t border-slate-100 text-xs space-y-1 font-medium text-slate-600">
                 <div className="flex justify-between"><span>Subtotal:</span><span>₹{subtotal.toLocaleString()}</span></div>
+                {gstTotal > 0 && <div className="flex justify-between text-purple-700 font-bold"><span>GST / Taxes:</span><span>+₹{gstTotal.toLocaleString()}</span></div>}
                 {discount > 0 && <div className="flex justify-between text-emerald-600"><span>Discount:</span><span>-₹{discount.toLocaleString()}</span></div>}
                 <div className="flex justify-between"><span>Shipping:</span><span className="text-emerald-600 font-bold">FREE</span></div>
                 <div className="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100"><span>Total:</span><span>₹{total.toLocaleString()}</span></div>
@@ -1144,6 +1165,12 @@ export default function CheckoutPage() {
 
               <div className="pt-3 border-t border-slate-100 text-xs space-y-2 font-medium text-slate-600">
                 <div className="flex justify-between"><span>Subtotal:</span><span>₹{subtotal.toLocaleString()}</span></div>
+                {gstTotal > 0 && (
+                  <div className="flex justify-between text-purple-700 font-bold">
+                    <span>GST / Taxes:</span>
+                    <span>+₹{gstTotal.toLocaleString()}</span>
+                  </div>
+                )}
                 {discount > 0 && <div className="flex justify-between text-emerald-600 font-bold"><span>Discount:</span><span>-₹{discount.toLocaleString()}</span></div>}
                 <div className="flex justify-between"><span>Shipping:</span><span className="text-emerald-600 font-bold">FREE</span></div>
                 <div className="flex justify-between font-extrabold text-slate-900 text-sm pt-2 border-t border-slate-100">

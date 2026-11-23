@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ClipboardPaste,
   Upload,
+  Receipt,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,8 @@ export function ProductFormDialog({
   const [subcategory, setSubcategory] = useState(defaultSubcategory || 'mugs');
   const [price, setPrice] = useState('');
   const [oldPrice, setOldPrice] = useState('');
+  const [gstType, setGstType] = useState<'percentage' | 'flat'>('percentage');
+  const [gstRate, setGstRate] = useState('0');
   const [stockStatus, setStockStatus] = useState<'In Stock' | 'Low Stock' | 'Out of Stock'>('In Stock');
   const [stockQuantity, setStockQuantity] = useState('50');
   const [badge, setBadge] = useState('None');
@@ -152,6 +155,8 @@ export function ProductFormDialog({
       setSubcategory(productToEdit.subcategory || defaultSubcategory || 'mugs');
       setPrice(productToEdit.price ? String(productToEdit.price) : '');
       setOldPrice(productToEdit.oldPrice ? String(productToEdit.oldPrice) : '');
+      setGstType(productToEdit.gstType || 'percentage');
+      setGstRate(productToEdit.gstRate !== undefined && productToEdit.gstRate !== null ? String(productToEdit.gstRate) : '0');
       setStockStatus(productToEdit.inventoryStatus || 'In Stock');
       setStockQuantity(productToEdit.stock ? String(productToEdit.stock) : '50');
       setBadge(productToEdit.badge || (productToEdit.isBestSeller ? 'Best Seller' : productToEdit.isNew ? 'New Arrival' : 'None'));
@@ -207,6 +212,8 @@ export function ProductFormDialog({
       setSubcategory(defaultSubcategory || 'mugs');
       setPrice('');
       setOldPrice('');
+      setGstType('percentage');
+      setGstRate('0');
       setStockStatus('In Stock');
       setStockQuantity('50');
       setBadge('None');
@@ -428,6 +435,8 @@ export function ProductFormDialog({
         subcategory,
         price: priceNum,
         oldPrice: oldPriceNum,
+        gstType,
+        gstRate: Number(gstRate) || 0,
         image: primaryImage,
         images: validImages,
         colors: colors
@@ -730,6 +739,76 @@ export function ProductFormDialog({
                     className="rounded-xl h-11 border-slate-200 text-xs font-bold focus-visible:ring-purple-500"
                   />
                 </div>
+              </div>
+
+              {/* GST / Tax Settings */}
+              <div className="bg-gradient-to-br from-purple-50/80 via-white to-pink-50/50 border border-purple-200/90 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                      <Receipt className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                        GST / Tax Configuration
+                      </Label>
+                      <p className="text-[10px] text-slate-500 font-semibold">
+                        Applies automatically to final order amount in cart, checkout &amp; invoices
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100/70 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    Editable per product
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold text-slate-700">
+                      GST Rate Type
+                    </Label>
+                    <select
+                      value={gstType}
+                      onChange={(e: any) => setGstType(e.target.value)}
+                      className="w-full h-11 px-3.5 rounded-xl border border-purple-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    >
+                      <option value="percentage">Percentage (%) — e.g. 5%, 12%, 18%</option>
+                      <option value="flat">Fixed Amount (₹ Rupees) — Flat per item</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                      <span>{gstType === 'percentage' ? 'GST Rate (%)' : 'GST Amount per Item (₹)'}</span>
+                      <span className="text-[10px] font-bold text-purple-600">
+                        {gstType === 'percentage' ? `${gstRate || 0}% will be added` : `₹${gstRate || 0} per item`}
+                      </span>
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
+                        {gstType === 'percentage' ? '%' : '₹'}
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={gstRate}
+                        onChange={(e) => setGstRate(e.target.value)}
+                        placeholder={gstType === 'percentage' ? '18' : '50'}
+                        className="pl-8 rounded-xl h-11 border-purple-200 text-xs font-bold focus-visible:ring-purple-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-[10px] text-slate-500 font-medium bg-white/80 p-2 rounded-lg border border-purple-100 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                  <span>
+                    {gstType === 'percentage'
+                      ? `When ordered, ${gstRate || 0}% GST will be computed on the product selling price and added to the customer's final amount.`
+                      : `When ordered, ₹${gstRate || 0} fixed GST will be multiplied by quantity and added to the customer's final amount.`}
+                  </span>
+                </p>
               </div>
 
               {/* Next Step Pill */}

@@ -62,6 +62,8 @@ export interface Product {
   personalizationMaxChars?: number; // e.g. 12
   personalizationOptions?: string[]; // Dropdown variants (fonts, charms, etc.)
   deliveryTime?: string; // e.g. "2 - 4 Days"
+  gstType?: 'percentage' | 'flat'; // 'percentage' (e.g. 18%) or 'flat' (e.g. ₹50)
+  gstRate?: number; // GST rate percentage or flat rupees per unit
   createdAt?: any;
   updatedAt?: any;
   seo?: ProductSEO;
@@ -77,6 +79,9 @@ export interface CartItem extends Product {
   personalizationOption?: string;
   variantImage?: string;
   variantPrice?: number;
+  gstType?: 'percentage' | 'flat';
+  gstRate?: number;
+  gstAmount?: number;
 }
 
 export const CATEGORIES_MAP: Record<string, string[]> = {

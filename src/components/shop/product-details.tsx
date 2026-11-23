@@ -2,18 +2,18 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { 
-  Star, 
-  ShoppingCart, 
-  Zap, 
-  Heart, 
-  Truck, 
-  Plus, 
-  Minus, 
-  Pencil, 
-  CheckCircle2, 
-  Loader2, 
-  Play, 
+import {
+  Star,
+  ShoppingCart,
+  Zap,
+  Heart,
+  Truck,
+  Plus,
+  Minus,
+  Pencil,
+  CheckCircle2,
+  Loader2,
+  Play,
   ChevronRight,
   Droplet,
   Leaf,
@@ -57,7 +57,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'box' | 'care'>('description');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
-  
+
   const { toast } = useToast();
   const { addToCart } = useCart();
   const router = useRouter();
@@ -88,14 +88,21 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
   const personalizationDropdownOptions = useMemo(() => {
     if (product.personalizationOptions && product.personalizationOptions.length > 0) {
-      return product.personalizationOptions;
+      return product.personalizationOptions.map(opt =>
+        opt.replace(/^Font\s*Style:\s*/i, '')
+           .replace(/^Icon\s*Charm:\s*/i, '')
+           .replace(/\bFont\b/gi, '')
+           .replace(/\bCharm\b/gi, '')
+           .replace(/\s{2,}/g, ' ')
+           .trim()
+      ).filter(Boolean);
     }
     return [
-      'Font Style: Playful Comic',
-      'Font Style: Elegant Cursive',
-      'Font Style: Modern Bold',
-      'Icon Charm: Star / Magic',
-      'Icon Charm: Unicorn / Dino'
+      'Playful Comic',
+      'Elegant Cursive',
+      'Modern Bold',
+      'Star / Magic',
+      'Unicorn / Dino'
     ];
   }, [product.personalizationOptions]);
 
@@ -366,7 +373,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         selectedCapacity,
         personalizationOption: selectedVariantOption,
         variantImage: colorPhoto,
-        variantPrice: variantEffectivePrice
+        variantPrice: variantEffectivePrice,
+        gstType: product.gstType || 'percentage',
+        gstRate: Number(product.gstRate) || 0
       }
     );
     toast({ 
@@ -397,7 +406,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         selectedCapacity,
         personalizationOption: selectedVariantOption,
         variantImage: colorPhoto,
-        variantPrice: variantEffectivePrice
+        variantPrice: variantEffectivePrice,
+        gstType: product.gstType || 'percentage',
+        gstRate: Number(product.gstRate) || 0
       }
     );
     setTimeout(() => router.push('/checkout'), 350);
@@ -415,17 +426,17 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     });
   }, [emblaApi]);
 
-  const subtitleText = product.subtitle || 
+  const subtitleText = product.subtitle ||
     `A cute, durable and leak-proof ${product.name.toLowerCase()} with your child's name – perfect for school, travel and everyday use.`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-6">
       <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
-        
+
         {/* Visual Column: Image Gallery */}
         <div className="lg:col-span-6 flex flex-col gap-4">
           <div className="relative group rounded-3xl overflow-hidden bg-[#e6f4f1] border border-slate-100 shadow-sm aspect-square flex items-center justify-center">
-            
+
             {/* Top Badges */}
             <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-20">
               {product.isBestSeller !== false && (
@@ -442,7 +453,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
             {/* Video Reel Trigger if Available */}
             {product.videoUrl && (
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsVideoOpen(true)}
@@ -461,10 +472,10 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 {galleryImages.map((img, i) => (
                   <div key={i} className="relative flex-[0_0_100%] min-w-0 h-full p-4 md:p-6 flex items-center justify-center">
                     <div className="relative w-full h-full">
-                      <Image 
-                        src={getOptimizedImageUrl(img, 900)} 
-                        alt={`${product.name} view ${i + 1}`} 
-                        fill 
+                      <Image
+                        src={getOptimizedImageUrl(img, 900)}
+                        alt={`${product.name} view ${i + 1}`}
+                        fill
                         className="object-contain transition-transform duration-700 group-hover:scale-105"
                         priority={i === 0}
                         sizes="(max-width: 1024px) 100vw, 50vw"
@@ -486,8 +497,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                     aria-label={`Go to slide ${i + 1}`}
                     className={cn(
                       "transition-all duration-300 rounded-full",
-                      selectedImage === i 
-                        ? "w-6 h-1.5 bg-[#0ea5e9]" 
+                      selectedImage === i
+                        ? "w-6 h-1.5 bg-[#0ea5e9]"
                         : "w-1.5 h-1.5 bg-slate-300 hover:bg-slate-400"
                     )}
                   />
@@ -505,16 +516,16 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   onClick={() => onThumbClick(i)}
                   className={cn(
                     "relative w-16 h-16 rounded-xl overflow-hidden border-2 bg-slate-50 shrink-0 transition-all",
-                    selectedImage === i 
-                      ? "border-[#5f259f] ring-2 ring-[#e9c9f2] shadow-sm scale-95" 
+                    selectedImage === i
+                      ? "border-[#5f259f] ring-2 ring-[#e9c9f2] shadow-sm scale-95"
                       : "border-slate-200 opacity-70 hover:opacity-100"
                   )}
                 >
-                  <Image 
-                    src={getThumbnailImageUrl(img)} 
-                    alt={`Thumb ${i + 1}`} 
-                    fill 
-                    className="object-cover" 
+                  <Image
+                    src={getThumbnailImageUrl(img)}
+                    alt={`Thumb ${i + 1}`}
+                    fill
+                    className="object-cover"
                     unoptimized
                   />
                 </button>
@@ -525,7 +536,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
         {/* Info Column: Details & Purchase */}
         <div className="lg:col-span-6 space-y-5">
-          
+
           {/* Category Pill */}
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f3e8ff] text-[#7e22ce] rounded-full text-xs font-bold tracking-wide">
@@ -611,12 +622,24 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <div className="bg-[#faf5ff] border border-[#e9d5ff] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
             <div className="flex items-center gap-2 text-[#5f259f] font-bold text-sm">
               <Pencil className="h-4 w-4 text-[#5f259f]" />
-              <span>{product.personalizationTitle || 'Personalize Your Bottle'}</span>
+              <span>
+                {product.personalizationTitle ||
+                  (product.name?.toLowerCase().includes('bottle')
+                    ? 'Personalize Your Bottle'
+                    : product.name?.toLowerCase().includes('lunch')
+                    ? 'Personalize Your Lunch Box'
+                    : `Personalize Your ${product.name ? product.name.split(' ')[0] : 'Item'}`)}
+              </span>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 block">
-                {product.personalizationLabel || 'Name on Bottle *'}
+                {product.personalizationLabel ||
+                  (product.name?.toLowerCase().includes('bottle')
+                    ? 'Name on Bottle *'
+                    : product.name?.toLowerCase().includes('lunch')
+                    ? 'Name on Lunch Box *'
+                    : 'Name on Item *')}
               </label>
               <div className="relative">
                 <input
@@ -641,7 +664,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   onChange={(e) => setSelectedVariantOption(e.target.value)}
                   className="w-full bg-white border border-[#d8b4fe] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#9333ea] appearance-none pr-8 cursor-pointer transition-all"
                 >
-                  <option value="">• Please Select Font / Charm / Design •</option>
+                  <option value="">• Please Select Style / Design •</option>
                   {personalizationDropdownOptions.map((opt, i) => (
                     <option key={i} value={opt}>{opt}</option>
                   ))}
@@ -681,8 +704,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                       style={{ backgroundColor: c.hex }}
                       className={cn(
                         "w-8 h-8 rounded-full transition-transform shadow-sm relative flex items-center justify-center",
-                        isSelected 
-                          ? "ring-2 ring-offset-2 ring-[#5f259f] scale-110" 
+                        isSelected
+                          ? "ring-2 ring-offset-2 ring-[#5f259f] scale-110"
                           : "hover:scale-105 opacity-90"
                       )}
                     >
@@ -907,14 +930,14 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
             {/* Tab Contents */}
             <div className="py-4 space-y-4">
-              
+
               {/* Tab 1: Description */}
               {activeTab === 'description' && (
                 <div className="space-y-4 text-xs sm:text-sm">
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm mb-1.5">Product Description</h3>
                     <p className="text-slate-600 leading-relaxed font-normal">
-                      {product.description || 
+                      {product.description ||
                         `Make hydration fun and personal! The GiftArtStudio ${product.name} is designed especially for kids with vibrant prints, a leak-proof cap and their own name on it. It's safe, durable and perfect for school, travel, sports or everyday use.`
                       }
                     </p>
@@ -1037,11 +1060,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <DialogTitle className="sr-only">Product Reel</DialogTitle>
           <div className="relative h-full w-full">
             {isVideoOpen && product.videoUrl && (
-              <video 
-                src={product.videoUrl} 
-                className="w-full h-full object-cover" 
-                controls 
-                autoPlay 
+              <video
+                src={product.videoUrl}
+                className="w-full h-full object-cover"
+                controls
+                autoPlay
                 loop
               />
             )}
@@ -1052,22 +1075,22 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       {/* Mobile Sticky Action Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-t border-purple-100 p-3 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-2 max-w-md mx-auto">
-          <Button 
+          <Button
             type="button"
             onClick={handleToggleWishlist}
             variant="outline"
             aria-label="Wishlist"
             className={cn(
               "w-12 h-12 rounded-xl border-2 flex items-center justify-center shrink-0 transition-colors",
-              isWishlisted 
-                ? "border-rose-200 bg-rose-50 text-rose-500" 
+              isWishlisted
+                ? "border-rose-200 bg-rose-50 text-rose-500"
                 : "border-slate-200 bg-white text-slate-400"
             )}
           >
             <Heart className={cn("h-5 w-5", isWishlisted && "fill-rose-500 text-rose-500")} />
           </Button>
 
-          <Button 
+          <Button
             type="button"
             onClick={handleAddToCart}
             variant="outline"
@@ -1076,7 +1099,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             <ShoppingCart className="h-4 w-4 mr-1.5 text-[#5f259f]" /> Add
           </Button>
 
-          <Button 
+          <Button
             type="button"
             onClick={handleBuyNow}
             disabled={isProcessing}

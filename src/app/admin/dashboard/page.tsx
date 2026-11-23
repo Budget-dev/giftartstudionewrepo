@@ -853,16 +853,24 @@ export default function AdminDashboard() {
               </div>
 
               {/* Payment Summary */}
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100/60 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-purple-900">Total Order Amount</span>
-                  <div className="text-[10px] text-purple-600 font-semibold">
-                    {selectedOrder.paymentMethod === 'cod' ? 'COD Order (₹100 Paid upfront)' : 'Full Prepaid Order'}
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100/60 space-y-2">
+                {selectedOrder.gstTotal ? (
+                  <div className="flex justify-between text-xs text-slate-600 font-semibold">
+                    <span>GST / Taxes:</span>
+                    <span>₹{(Number(selectedOrder.gstTotal) || 0).toLocaleString()}</span>
                   </div>
+                ) : null}
+                <div className="flex items-center justify-between pt-1 border-t border-purple-200/50">
+                  <div>
+                    <span className="text-xs font-bold text-purple-900">Total Order Amount</span>
+                    <div className="text-[10px] text-purple-600 font-semibold">
+                      {selectedOrder.paymentMethod === 'cod' ? 'COD Order (₹100 Paid upfront)' : 'Full Prepaid Order'}
+                    </div>
+                  </div>
+                  <span className="text-xl font-black text-purple-900">
+                    ₹{(Number(selectedOrder.total) || 0).toLocaleString()}
+                  </span>
                 </div>
-                <span className="text-xl font-black text-purple-900">
-                  ₹{(Number(selectedOrder.total) || 0).toLocaleString()}
-                </span>
               </div>
             </div>
           </DialogContent>

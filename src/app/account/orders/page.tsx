@@ -173,6 +173,11 @@ export default function MyOrdersPage() {
                       <div className="text-base font-bold text-slate-900 dark:text-white">
                         ₹{Number(order.total || 0).toLocaleString('en-IN')}
                       </div>
+                      {order.gstTotal ? (
+                        <div className="text-[10px] text-slate-400">
+                          Incl. ₹{Number(order.gstTotal).toLocaleString('en-IN')} GST
+                        </div>
+                      ) : null}
                       <div className="text-[11px] font-medium text-slate-500 mt-0.5">
                         {isCOD ? (
                           <span className="text-amber-600 dark:text-amber-400 font-semibold">

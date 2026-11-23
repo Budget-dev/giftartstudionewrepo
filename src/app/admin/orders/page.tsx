@@ -132,7 +132,10 @@ export default function OrdersPage() {
 
           <div style="margin-top: 20px; border-top: 2px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between;">
             <div><strong>Payment:</strong> ${order.paymentMethod === 'cod' ? 'COD Partial (₹100 Paid Advance)' : 'Prepaid Online Full'}</div>
-            <div><strong>Total Value:</strong> ₹${(order.total || 0).toLocaleString()}</div>
+            <div style="text-align: right;">
+              ${order.gstTotal ? `<div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">GST / Taxes: ₹${Number(order.gstTotal).toLocaleString()}</div>` : ''}
+              <div><strong>Total Value:</strong> ₹${(order.total || 0).toLocaleString()}</div>
+            </div>
           </div>
           <script>window.onload = function() { window.print(); };</script>
         </body>
@@ -671,9 +674,17 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-50 text-purple-900 font-bold flex justify-between items-center text-xs">
-                <span>Total Value</span>
-                <span className="text-base font-black">₹{(Number(selectedOrder.total) || 0).toLocaleString()}</span>
+              <div className="p-4 rounded-2xl bg-purple-50 text-purple-900 font-bold space-y-1.5 text-xs">
+                {selectedOrder.gstTotal ? (
+                  <div className="flex justify-between text-slate-600 font-semibold">
+                    <span>GST / Taxes:</span>
+                    <span>₹{(Number(selectedOrder.gstTotal) || 0).toLocaleString()}</span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between items-center pt-1 border-t border-purple-200/60">
+                  <span>Total Value:</span>
+                  <span className="text-base font-black">₹{(Number(selectedOrder.total) || 0).toLocaleString()}</span>
+                </div>
               </div>
             </div>
           </DialogContent>

@@ -21,9 +21,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, subtotal, cartCount } = useCart();
+  const { cart, removeFromCart, updateQuantity, subtotal, cartCount, gstTotal, total } = useCart();
   const shipping = 0;
-  const total = subtotal;
 
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col">
@@ -123,6 +122,12 @@ export default function CartPage() {
                 
                 <div className="space-y-4">
                   <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400"><span>Bag Subtotal</span><span className="text-slate-800">₹{subtotal.toLocaleString()}</span></div>
+                  {gstTotal > 0 && (
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                      <span>GST / Taxes</span>
+                      <span className="text-purple-600 font-extrabold">+₹{gstTotal.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400"><span>Shipping</span><span className="text-emerald-500 font-extrabold">FREE</span></div>
                   <div className="pt-6 mt-6 border-t flex justify-between items-end">
                     <div className="space-y-0.5">
