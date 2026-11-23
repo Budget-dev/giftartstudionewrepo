@@ -80,6 +80,35 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     ];
   }, [product.colors]);
 
+  const detectedItemName = useMemo(() => {
+    const raw = `${product.title || ''} ${product.name || ''} ${product.subcategory || ''} ${product.category || ''}`.toLowerCase();
+    if (raw.includes('lunch') || raw.includes('tiffin') || raw.includes('veigo')) return 'Lunch Box';
+    if (raw.includes('tumbler')) return 'Tumbler';
+    if (raw.includes('bottle') || raw.includes('sipper') || raw.includes('flask') || raw.includes('hydration')) return 'Bottle';
+    if (raw.includes('umbrella')) return 'Umbrella';
+    if (raw.includes('sleeve')) return 'Laptop Sleeve';
+    if (raw.includes('clock')) return 'Wall Clock';
+    if (raw.includes('bag') || raw.includes('backpack')) return 'Bag';
+    if (raw.includes('diy')) return 'DIY Kit';
+    if (raw.includes('combo')) return 'Combo';
+    if (raw.includes('mug')) return 'Mug';
+    if (raw.includes('wallet') || raw.includes('passport')) return 'Wallet';
+    return 'Item';
+  }, [product.title, product.name, product.subcategory, product.category]);
+
+  const personalizationTitleText = useMemo(() => {
+    if (product.personalizationTitle) return product.personalizationTitle;
+    return `Personalize Your ${detectedItemName}`;
+  }, [product.personalizationTitle, detectedItemName]);
+
+  const personalizationLabelText = useMemo(() => {
+    if (product.personalizationLabel) return product.personalizationLabel;
+    if (product.personalizationPrompt && !product.personalizationPrompt.toLowerCase().includes('custom text')) {
+      return `${product.personalizationPrompt} *`;
+    }
+    return `Name on ${detectedItemName} *`;
+  }, [product.personalizationLabel, product.personalizationPrompt, detectedItemName]);
+
   const capacities = useMemo(() => {
     if (product.capacities && product.capacities.length > 0) return product.capacities;
     if (product.sizes && product.sizes.length > 0) return product.sizes;
@@ -87,65 +116,103 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   }, [product.capacities, product.sizes]);
 
   const personalizationDropdownOptions = useMemo(() => {
-    if (product.personalizationOptions && product.personalizationOptions.length > 0) {
-      return product.personalizationOptions.map(opt =>
-        opt.replace(/^Font\s*Style:\s*/i, '')
-           .replace(/^Icon\s*Charm:\s*/i, '')
-           .replace(/\bFont\b/gi, '')
-           .replace(/\bCharm\b/gi, '')
-           .replace(/\s{2,}/g, ' ')
-           .trim()
-      ).filter(Boolean);
-    }
-    return [
-      'Playful Comic',
-      'Elegant Cursive',
-      'Modern Bold',
-      'Star / Magic',
-      'Unicorn / Dino'
-    ];
+    const rawOptions = (product.personalizationOptions && product.personalizationOptions.length > 0)
+      ? product.personalizationOptions
+      : [
+          'Playful Comic',
+          'Elegant Cursive',
+          'Modern Bold',
+          'Star / Magic',
+          'Unicorn / Dino'
+        ];
+
+    return rawOptions.map(opt =>
+      opt
+        .replace(/^Font\s*Style:\s*/i, '')
+        .replace(/^Icon\s*Charm:\s*/i, '')
+        .replace(/\bFont\s*Style\b/gi, 'Style')
+        .replace(/\bIcon\s*Charm\b/gi, 'Design')
+        .replace(/\bFont\b/gi, '')
+        .replace(/\bCharm\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+    ).filter(Boolean);
   }, [product.personalizationOptions]);
 
   const highlights = useMemo(() => {
     if (product.highlights && product.highlights.length > 0) return product.highlights;
     return [
-      "Personalized with your child's name",
-      "Leak-proof and spill-proof lid",
-      "BPA-free, food-grade material",
-      "Lightweight, durable and kid-friendly",
-      "Available in multiple colours and fun designs",
-      "Perfect for school, travel, sports and daily use"
+      `Personalized with your custom name`,
+      detectedItemName === 'Lunch Box' ? "Leak-proof and airtight lid lock" : "Leak-proof and spill-proof design",
+      "BPA-free, food-grade safe material",
+      "Lightweight, durable and premium finish",
+      "Available in multiple colours and designs",
+      "Perfect for school, travel, office and daily use"
     ];
-  }, [product.highlights]);
+  }, [product.highlights, detectedItemName]);
 
   const specifications = useMemo(() => {
     if (product.specifications && Object.keys(product.specifications).length > 0) {
       return product.specifications;
     }
+    if (detectedItemName === 'Bottle' || detectedItemName === 'Tumbler') {
+      return {
+        'Capacity': capacities.join(' / '),
+        'Material': 'Food-grade, BPA-Free Stainless Steel / PP',
+        'Weight': '~ 210 g',
+        'Dimensions': '7.2 × 22 cm',
+        'Age Group': 'All Ages'
+      };
+    }
+    if (detectedItemName === 'Lunch Box') {
+      return {
+        'Capacity': capacities.join(' / '),
+        'Material': 'Stainless Steel Interior + Food-Grade BPA-Free Shell',
+        'Lock Type': '4-Side Secure Airtight Snap Lock',
+        'Microwave Safe': 'Inner tray warm safe',
+        'Age Group': 'All Ages'
+      };
+    }
     return {
-      'Capacity': capacities.join(' / '),
-      'Material': 'Food-grade, BPA-Free (PP + Tritan)',
-      'Weight': '~ 210 g (500 ml)',
-      'Dimensions': '7.2 × 22 cm (500 ml)',
-      'Age Group': '3+ Years'
+      'Category': product.category || 'Personalised Gifts',
+      'Customisation': 'Personalised Name & Style',
+      'Material': 'Premium Quality Materials',
+      'Quality Check': '100% Quality Inspected',
+      'Origin': 'Handcrafted with Love'
     };
-  }, [product.specifications, capacities]);
+  }, [product.specifications, capacities, detectedItemName, product.category]);
 
   const whatsInBox = useMemo(() => {
     if (product.whatsInBox && product.whatsInBox.length > 0) return product.whatsInBox;
+    const baseName = product.title || product.name || 'Personalised Item';
+    if (detectedItemName === 'Bottle' || detectedItemName === 'Tumbler') {
+      return [
+        `1 × ${baseName}`,
+        '1 × Spill-Proof Lid & Straw Cap',
+        '1 × Soft Cleaning Sponge Brush',
+        '1 × GiftArtStudio Care & Warranty Guide'
+      ];
+    }
+    if (detectedItemName === 'Lunch Box') {
+      return [
+        `1 × ${baseName}`,
+        '1 × Airtight Lock Lid with Seal',
+        '1 × Customised Cutlery / Compartment Tray',
+        '1 × GiftArtStudio Care & Warranty Guide'
+      ];
+    }
     return [
-      `1 × ${product.name}`,
-      '1 × Spill-Proof Lid & Straw Cap',
-      '1 × Soft Cleaning Sponge Brush',
-      '1 × GiftArtStudio Care & Warranty Guide'
+      `1 × ${baseName}`,
+      '1 × Protective Studio Packaging',
+      '1 × GiftArtStudio Authenticity & Care Card'
     ];
-  }, [product.whatsInBox, product.name]);
+  }, [product.whatsInBox, product.title, product.name, detectedItemName]);
 
   const careInstructions = useMemo(() => {
     if (product.careInstructions && product.careInstructions.length > 0) return product.careInstructions;
     return [
       'Hand wash recommended to preserve custom prints and vibrant colours',
-      'Do not place in microwave oven or direct deep freezer',
+      'Do not place in direct flame or harsh deep freezer',
       'Wash thoroughly with mild soap and warm water before initial use',
       'Store with lid open to ensure complete ventilation and drying'
     ];
@@ -624,24 +691,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <div className="bg-[#faf5ff] border border-[#e9d5ff] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
             <div className="flex items-center gap-2 text-[#5f259f] font-bold text-sm">
               <Pencil className="h-4 w-4 text-[#5f259f]" />
-              <span>
-                {product.personalizationTitle ||
-                  (product.name?.toLowerCase().includes('bottle')
-                    ? 'Personalize Your Bottle'
-                    : product.name?.toLowerCase().includes('lunch')
-                    ? 'Personalize Your Lunch Box'
-                    : `Personalize Your ${product.name ? product.name.split(' ')[0] : 'Item'}`)}
-              </span>
+              <span>{personalizationTitleText}</span>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 block">
-                {product.personalizationLabel ||
-                  (product.name?.toLowerCase().includes('bottle')
-                    ? 'Name on Bottle *'
-                    : product.name?.toLowerCase().includes('lunch')
-                    ? 'Name on Lunch Box *'
-                    : 'Name on Item *')}
+                {personalizationLabelText}
               </label>
               <div className="relative">
                 <input
@@ -857,7 +912,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
             <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
               <Droplet className="h-5 w-5 text-[#5f259f]" />
-              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Leak-Proof Design</span>
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">
+                {detectedItemName === 'Lunch Box' || detectedItemName === 'Bottle' || detectedItemName === 'Tumbler' ? 'Leak-Proof Design' : 'Premium Finish'}
+              </span>
             </div>
             <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
               <Leaf className="h-5 w-5 text-[#5f259f]" />
@@ -869,7 +926,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             </div>
             <div className="bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
               <Thermometer className="h-5 w-5 text-[#5f259f]" />
-              <span className="text-[10px] font-semibold text-slate-700 leading-tight">Keeps Drinks Fresh</span>
+              <span className="text-[10px] font-semibold text-slate-700 leading-tight">
+                {detectedItemName === 'Lunch Box' ? 'Keeps Food Fresh' : detectedItemName === 'Bottle' || detectedItemName === 'Tumbler' ? 'Keeps Drinks Fresh' : 'High Durability'}
+              </span>
             </div>
             <div className="col-span-2 sm:col-span-1 bg-white border border-purple-100 rounded-xl p-2.5 flex flex-col items-center justify-center text-center gap-1.5 shadow-2xs hover:border-purple-300 transition-colors">
               <Gift className="h-5 w-5 text-[#5f259f]" />
