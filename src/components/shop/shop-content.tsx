@@ -73,6 +73,48 @@ export function ShopContent({ category, subcategory, onOpenFilters }: ShopConten
           p.name?.toLowerCase().includes('combo') ||
           p.title?.toLowerCase().includes('combo')
         );
+      } else if (sub.includes('diy')) {
+        const diyItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('diy') ||
+          p.name?.toLowerCase().includes('diy') ||
+          p.title?.toLowerCase().includes('diy') ||
+          p.name?.toLowerCase().includes('kit')
+        );
+        if (diyItems.length > 0) result = diyItems;
+      } else if (sub.includes('tumbler')) {
+        const tumblerItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('tumbler') ||
+          p.name?.toLowerCase().includes('tumbler') ||
+          p.title?.toLowerCase().includes('tumbler') ||
+          p.name?.toLowerCase().includes('hydro')
+        );
+        if (tumblerItems.length > 0) result = tumblerItems;
+      } else if (sub.includes('clock') || sub.includes('wall')) {
+        const clockItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('clock') ||
+          p.subcategory?.toLowerCase().includes('wall') ||
+          p.name?.toLowerCase().includes('clock') ||
+          p.name?.toLowerCase().includes('wall') ||
+          p.name?.toLowerCase().includes('hanging')
+        );
+        if (clockItems.length > 0) result = clockItems;
+      } else if (sub.includes('corporate')) {
+        const corpItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('corporate') ||
+          p.category?.toLowerCase().includes('corporate') ||
+          p.name?.toLowerCase().includes('corporate') ||
+          p.name?.toLowerCase().includes('elite') ||
+          p.name?.toLowerCase().includes('gift set')
+        );
+        if (corpItems.length > 0) result = corpItems;
+      } else if (sub.includes('sleeve')) {
+        const sleeveItems = result.filter(p =>
+          p.subcategory?.toLowerCase().includes('sleeve') ||
+          p.name?.toLowerCase().includes('sleeve') ||
+          p.name?.toLowerCase().includes('laptop') ||
+          p.subcategory?.toLowerCase().includes('laptop')
+        );
+        if (sleeveItems.length > 0) result = sleeveItems;
       } else if (sub.includes('stationery') || sub.includes('planner')) {
         result = result.filter(p =>
           p.subcategory?.toLowerCase().includes('stationery') ||

@@ -44,22 +44,42 @@ export const CATEGORIES_LIST = [
   { 
     name: 'Personalised Gifts', 
     slug: 'personalized-gifts', 
-    subcategories: ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts'] 
+    subcategories: ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts', 'wall-clocks', 'diy'] 
   },
   { 
     name: 'Kids', 
     slug: 'kids', 
-    subcategories: ['bags', 'water-bottles', 'lunch-boxes', 'umbrellas', 'combos', 'kids-gifts', 'stationery', 'toys', 'travelling'] 
+    subcategories: ['bags', 'small-bags', 'big-bags', 'water-bottles', 'lunch-boxes', 'umbrellas', 'combos', 'kids-gifts', 'stationery', 'toys', 'travelling'] 
   },
   { 
     name: 'Adults', 
     slug: 'adults', 
-    subcategories: ['mens', 'womens', 'unisex', 'travelling'] 
+    subcategories: ['mens', 'womens', 'unisex', 'tumblers', 'travelling'] 
+  },
+  { 
+    name: 'Corporate Gifts', 
+    slug: 'corporate-gifts', 
+    subcategories: ['executive-sets', 'diaries-pens', 'drinkware', 'desk-organizers', 'tech-accessories', 'gift-boxes', 'hampers', 'general'] 
+  },
+  { 
+    name: 'Return Gifts', 
+    slug: 'return-gifts', 
+    subcategories: ['birthday-return-gifts', 'wedding-favors', 'party-favors', 'stationery-kits', 'pouches-bags', 'custom-mementos', 'general'] 
+  },
+  { 
+    name: 'Lifestyle', 
+    slug: 'lifestyle', 
+    subcategories: ['bottles-tumblers', 'bags-organizers', 'wall-decor', 'wall-clocks', 'stationery', 'travel-essentials', 'home-decor', 'general'] 
+  },
+  { 
+    name: 'Souvenirs', 
+    slug: 'souvenirs', 
+    subcategories: ['custom-plaques', 'keychains', 'photo-frames', 'mementos', 'travel-keepsakes', 'general'] 
   },
   { 
     name: 'Accessories', 
     slug: 'accessories', 
-    subcategories: ['bags', 'travel-combo', 'travelling', 'gift-boxes', 'combos', 'desk'] 
+    subcategories: ['bags', 'small-bags', 'big-bags', 'laptop-sleeves', 'travel-combo', 'travelling', 'gift-boxes', 'combos', 'desk', 'general'] 
   },
   { 
     name: 'Pets', 

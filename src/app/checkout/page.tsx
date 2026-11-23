@@ -384,11 +384,11 @@ export default function CheckoutPage() {
         },
         paymentMethod: orderInfo.paymentMethodName,
         paymentType: orderInfo.paymentType,
-        paymentStatus: orderInfo.paidAmount >= total 
-          ? 'Paid' 
-          : orderInfo.paidAmount > 0 
-          ? `Advance Paid (₹${orderInfo.paidAmount} Paid, ₹${orderInfo.balanceAmount} COD Balance)` 
-          : `Pending (₹${orderInfo.balanceAmount} Due on Delivery)`,
+        paymentStatus: orderInfo.paidAmount >= total
+          ? 'Paid'
+          : orderInfo.paidAmount > 0
+            ? `Advance Paid (₹${orderInfo.paidAmount} Paid, ₹${orderInfo.balanceAmount} COD Balance)`
+            : `Pending (₹${orderInfo.balanceAmount} Due on Delivery)`,
         transactionId: orderInfo.transactionId,
         razorpayPaymentId: orderInfo.transactionId.startsWith('COD_') ? null : orderInfo.transactionId,
         createdAt: serverTimestamp(),
@@ -1100,15 +1100,15 @@ export default function CheckoutPage() {
                         {paymentMethod === 'full'
                           ? `Pay ₹${total.toLocaleString()} via Razorpay`
                           : paymentMethod === 'cod_advance'
-                          ? `Pay ₹${codAdvanceAmount} Advance & Confirm COD`
-                          : `Confirm COD Order (₹${total.toLocaleString()})`}
+                            ? `Pay ₹${codAdvanceAmount} Advance & Confirm COD`
+                            : `Confirm COD Order (₹${total.toLocaleString()})`}
                       </span>
                       <span className="text-[11px] opacity-85 font-medium mt-0.5">
                         {paymentMethod === 'full'
                           ? 'Instant 100% Prepaid Dispatch'
                           : paymentMethod === 'cod_advance'
-                          ? `Remaining ₹${codRemainingAmount.toLocaleString()} Due on Delivery`
-                          : 'Zero Online Payment • Pay Cash at Doorstep'}
+                            ? `Remaining ₹${codRemainingAmount.toLocaleString()} Due on Delivery`
+                            : 'Zero Online Payment • Pay Cash at Doorstep'}
                       </span>
                     </div>
                   )}

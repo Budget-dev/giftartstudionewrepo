@@ -38,12 +38,7 @@ export default function Home() {
       
       <div className="flex flex-col">
         {/* Categories */}
-        <div className="lg:hidden">
-          <CategoryGrid />
-        </div>
-        <div className="hidden lg:block">
-          <CategoryGrid />
-        </div>
+        <CategoryGrid />
 
         {/* New Arrivals */}
         <div className="lg:hidden">

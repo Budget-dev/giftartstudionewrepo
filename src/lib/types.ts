@@ -86,10 +86,15 @@ export interface CartItem extends Product {
 
 export const CATEGORIES_MAP: Record<string, string[]> = {
   'new': ['new-collection', 'new-launch', 'best-sellers', 'festive'],
-  'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts'],
-  'kids': ['bags', 'water-bottles', 'lunch-boxes', 'kids-gifts', 'stationery', 'toys', 'umbrellas', 'combos', 'travelling'],
-  'adults': ['mens', 'womens', 'unisex', 'travelling'],
-  'accessories': ['bags', 'travel-combo', 'travelling', 'gift-boxes', 'desk', 'combos']
+  'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts', 'wall-clocks', 'diy'],
+  'kids': ['bags', 'small-bags', 'big-bags', 'water-bottles', 'lunch-boxes', 'kids-gifts', 'stationery', 'toys', 'umbrellas', 'combos', 'travelling'],
+  'adults': ['mens', 'womens', 'unisex', 'tumblers', 'travelling'],
+  'corporate-gifts': ['executive-sets', 'diaries-pens', 'drinkware', 'desk-organizers', 'tech-accessories', 'gift-boxes', 'hampers', 'general'],
+  'return-gifts': ['birthday-return-gifts', 'wedding-favors', 'party-favors', 'stationery-kits', 'pouches-bags', 'custom-mementos', 'general'],
+  'lifestyle': ['bottles-tumblers', 'bags-organizers', 'wall-decor', 'wall-clocks', 'stationery', 'travel-essentials', 'home-decor', 'general'],
+  'souvenirs': ['custom-plaques', 'keychains', 'photo-frames', 'mementos', 'travel-keepsakes', 'general'],
+  'accessories': ['bags', 'small-bags', 'big-bags', 'laptop-sleeves', 'travel-combo', 'travelling', 'gift-boxes', 'desk', 'combos', 'general'],
+  'pets': ['pet-bowls', 'pet-tags', 'pet-bands', 'pet-toys', 'pet-clothes', 'pet-accessories']
 };
 
 export const ALL_PRODUCTS: Product[] = [];

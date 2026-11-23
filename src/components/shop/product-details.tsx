@@ -365,9 +365,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         ...product,
         price: variantEffectivePrice,
         oldPrice: currentOldPrice
-      }, 
-      quantity, 
-      { 
+      },
+      quantity,
+      {
         personalizationName,
         selectedColor,
         selectedCapacity,
@@ -378,9 +378,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         gstRate: Number(product.gstRate) || 0
       }
     );
-    toast({ 
-      title: "Added to Bag!", 
-      description: `${product.name} (${selectedColor || ''} • ₹${variantEffectivePrice.toLocaleString()}) added to your cart.` 
+    toast({
+      title: "Added to Bag!",
+      description: `${product.name} (${selectedColor || ''} • ₹${variantEffectivePrice.toLocaleString()}) added to your cart.`
     });
   };
 
@@ -398,9 +398,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         ...product,
         price: variantEffectivePrice,
         oldPrice: currentOldPrice
-      }, 
-      quantity, 
-      { 
+      },
+      quantity,
+      {
         personalizationName,
         selectedColor,
         selectedCapacity,
@@ -426,8 +426,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     });
   }, [emblaApi]);
 
-  const subtitleText = product.subtitle ||
-    `A cute, durable and leak-proof ${product.name.toLowerCase()} with your child's name – perfect for school, travel and everyday use.`;
+  // Prioritize custom subtitle if provided, otherwise manually entered product description (no fake bottle template)
+  const subtitleText = product.subtitle || product.description || '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-6">
@@ -556,10 +556,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             {product.name}
           </h1>
 
-          {/* Tagline / Subtitle */}
-          <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
-            {subtitleText}
-          </p>
+          {/* Tagline / Subtitle / Description directly under title */}
+          {subtitleText && (
+            <div className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed whitespace-pre-line">
+              {subtitleText}
+            </div>
+          )}
 
           {/* Rating & Social Proof Row */}
           <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-700">
@@ -935,12 +937,14 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               {activeTab === 'description' && (
                 <div className="space-y-4 text-xs sm:text-sm">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1.5">Product Description</h3>
-                    <p className="text-slate-600 leading-relaxed font-normal">
-                      {product.description ||
-                        `Make hydration fun and personal! The GiftArtStudio ${product.name} is designed especially for kids with vibrant prints, a leak-proof cap and their own name on it. It's safe, durable and perfect for school, travel, sports or everyday use.`
-                      }
-                    </p>
+                    <h3 className="font-bold text-slate-900 text-sm mb-2">Product Description</h3>
+                    <div className="text-slate-700 leading-relaxed font-normal whitespace-pre-line text-xs sm:text-sm">
+                      {product.description ? (
+                        <div>{product.description}</div>
+                      ) : (
+                        <div className="text-slate-400 italic">No additional description provided.</div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Highlights Card */}
