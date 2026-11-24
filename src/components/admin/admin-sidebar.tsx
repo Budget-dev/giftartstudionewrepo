@@ -22,7 +22,8 @@ import {
   PawPrint,
   CreditCard,
   PlusCircle,
-  Truck
+  Truck,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
@@ -119,6 +120,7 @@ const CORE_ITEMS = [
   { label: 'Orders', href: '/admin/orders', icon: ShoppingBag, hasBadge: true },
   { label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { label: 'Custom AI Orders', href: '/admin/customized-orders', icon: Wand2 },
+  { label: 'Banners', href: '/admin/banners', icon: ImageIcon },
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'RTO Management', href: '/admin/rto', icon: Undo2 },
   { label: 'SEO Settings', href: '/admin/seo', icon: Search },

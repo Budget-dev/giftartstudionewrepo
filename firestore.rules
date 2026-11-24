@@ -13,6 +13,17 @@ rules_version = '2';
 //   - category: string (optional) - Category identifier
 //   - subcategory: string (optional) - Subcategory identifier
 //
+// Collection: banners
+// Document ID: bannerId (auto-generated)
+// Fields:
+//   - title: string (optional) - Banner title/heading
+//   - subtitle: string (optional) - Banner description
+//   - imageUrl: string (required) - Banner media URL
+//   - link: string (optional) - Target redirect link
+//   - active: bool (optional) - Visibility toggle
+//   - order: number (optional) - Display priority
+//   - createdAt: timestamp (optional)
+//
 // Collection: orders
 // Document ID: orderId (auto-generated)
 // Fields:
@@ -172,6 +183,12 @@ service cloud.firestore {
 
     // Products: Public read for browsing, super owner full management
     match /products/{productId} {
+      allow read: if true;
+      allow write: if isSuperOwner();
+    }
+
+    // Hero & Promo Banners: Public read, super owner write
+    match /banners/{bannerId} {
       allow read: if true;
       allow write: if isSuperOwner();
     }

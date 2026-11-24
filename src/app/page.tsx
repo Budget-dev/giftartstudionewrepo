@@ -28,13 +28,8 @@ export default function Home() {
       <Navbar />
       <KidsDecor />
 
-      {/* Hero Section */}
-      <div className="lg:hidden">
-        <Hero isMobile />
-      </div>
-      <div className="hidden lg:block">
-        <Hero />
-      </div>
+      {/* Hero Banner Section (5-Second Auto Rotation) */}
+      <Hero />
       
       <div className="flex flex-col">
         {/* Categories */}

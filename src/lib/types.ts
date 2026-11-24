@@ -84,6 +84,21 @@ export interface CartItem extends Product {
   gstAmount?: number;
 }
 
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  mobileImageUrl?: string;
+  title?: string;
+  subHeading?: string;
+  description?: string;
+  primaryButtonText?: string;
+  linkUrl?: string;
+  order: number;
+  active: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export const CATEGORIES_MAP: Record<string, string[]> = {
   'new': ['new-collection', 'new-launch', 'best-sellers', 'festive'],
   'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts', 'wall-clocks', 'diy'],
