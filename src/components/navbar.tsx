@@ -31,7 +31,8 @@ import {
   Wand2,
   ChevronRight,
   Minus,
-  MessageSquare
+  MessageSquare,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/lib/store/cart-context';
@@ -134,6 +135,12 @@ const NAV_STRUCTURE = [
     icon: Info,
     type: 'link',
     href: '/about'
+  },
+  {
+    label: 'ART GALLERY',
+    icon: Palette,
+    type: 'link',
+    href: '/art-gallery'
   },
   {
     label: 'CUSTOMIZE',

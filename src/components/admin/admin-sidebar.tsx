@@ -23,7 +23,8 @@ import {
   CreditCard,
   PlusCircle,
   Truck,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Palette
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
@@ -121,6 +122,7 @@ const CORE_ITEMS = [
   { label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { label: 'Custom AI Orders', href: '/admin/customized-orders', icon: Wand2 },
   { label: 'Banners', href: '/admin/banners', icon: ImageIcon },
+  { label: 'Art Gallery', href: '/admin/art-gallery', icon: Palette },
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'RTO Management', href: '/admin/rto', icon: Undo2 },
   { label: 'SEO Settings', href: '/admin/seo', icon: Search },

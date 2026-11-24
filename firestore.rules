@@ -24,6 +24,31 @@ rules_version = '2';
 //   - order: number (optional) - Display priority
 //   - createdAt: timestamp (optional)
 //
+// Collection: artists
+// Document ID: artistId (auto-generated or Auth UID)
+// Fields:
+//   - name: string (required) - Artist full name / studio name
+//   - email: string (required) - Artist contact email
+//   - bio: string (optional) - Bio / artistic background
+//   - portfolio: string (optional) - Portfolio URL / external links
+//   - avatar: string (optional) - Profile picture URL
+//   - status: string (optional) - Application status ('pending', 'approved', 'rejected')
+//   - userId: string (optional) - Auth UID if linked to user account
+//   - createdAt: timestamp (optional)
+//
+// Collection: artworks
+// Document ID: artworkId (auto-generated)
+// Fields:
+//   - title: string (required) - Artwork title
+//   - description: string (optional) - Medium, description, story
+//   - image: string (optional) - Artwork image URL
+//   - artistId: string (optional) - Artist ID / Auth UID
+//   - userId: string (optional) - Submitting artist Auth UID
+//   - status: string (required) - 'pending_review', 'approved', 'rejected', 'published'
+//   - finalPrice: number (optional) - Approved selling price set by super owner
+//   - isPublished: bool (optional) - Visibility in public gallery
+//   - createdAt: timestamp (optional)
+//
 // Collection: orders
 // Document ID: orderId (auto-generated)
 // Fields:
@@ -177,6 +202,34 @@ service cloud.firestore {
              (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) || isSuperOwner());
     }
 
+    // Domain Validator: Artist Registration Application
+    function isValidArtistCreate() {
+      return hasRequiredFields(['name', 'email']) &&
+             request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 &&
+             request.resource.data.email is string && request.resource.data.email.size() > 0 && request.resource.data.email.size() <= 150 &&
+             (!('status' in request.resource.data) || request.resource.data.status in ['pending', 'pending_review', 'submitted'] || isSuperOwner()) &&
+             (!('userId' in request.resource.data) || request.resource.data.userId is string);
+    }
+
+    // Check if current user is the owner of the artist profile
+    function isArtistDocOwner(artistId) {
+      return isSignedIn() && (
+        request.auth.uid == artistId ||
+        (('userId' in resource.data) && resource.data.userId == request.auth.uid)
+      );
+    }
+
+    // Domain Validator: Artwork Submission
+    function isValidArtworkCreate() {
+      return isSignedIn() &&
+             hasRequiredFields(['title', 'status']) &&
+             request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200 &&
+             request.resource.data.status is string &&
+             (request.resource.data.status == 'pending_review' || isSuperOwner()) &&
+             (!('artistId' in request.resource.data) || request.resource.data.artistId == request.auth.uid || isSuperOwner()) &&
+             (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid || isSuperOwner());
+    }
+
     // ===============================================================
     // Collection Match Rules
     // ===============================================================
@@ -191,6 +244,32 @@ service cloud.firestore {
     match /banners/{bannerId} {
       allow read: if true;
       allow write: if isSuperOwner();
+    }
+
+    // Artists: Public read for displaying profiles and bios on artworks.
+    // Public create allowed for artist registration applications with validation.
+    // Artist owner can update profile information; super owner can approve, reject, or edit.
+    match /artists/{artistId} {
+      allow read: if true;
+      allow create: if isSuperOwner() || isValidArtistCreate();
+      allow update: if isSuperOwner() || 
+                       (isArtistDocOwner(artistId) && 
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'approved', 'verified']));
+      allow delete: if isSuperOwner();
+    }
+
+    // Artworks: Public read for gallery visitors.
+    // Authenticated/registered artists can create submissions with status 'pending_review'.
+    // Super owner can read, write, approve, set final selling price, and publish.
+    match /artworks/{artworkId} {
+      allow read: if true;
+      allow create: if isSuperOwner() || isValidArtworkCreate();
+      allow update: if isSuperOwner() ||
+                       (isSignedIn() && 
+                        (('artistId' in resource.data && resource.data.artistId == request.auth.uid) || 
+                         ('userId' in resource.data && resource.data.userId == request.auth.uid)) &&
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'approved', 'finalPrice', 'sellingPrice', 'isPublished']));
+      allow delete: if isSuperOwner();
     }
 
     // Orders: Public create for guest & user checkout with strict validation.

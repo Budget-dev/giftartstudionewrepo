@@ -99,6 +99,53 @@ export interface Banner {
   updatedAt?: any;
 }
 
+export interface Artist {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city?: string;
+  specialty?: string; // e.g. "Oil on Canvas, Acrylics, Resin Art"
+  bio: string;
+  avatarUrl?: string;
+  portfolioUrl?: string;
+  instagramUrl?: string;
+  sampleImages?: string[];
+  password?: string;
+  status: 'pending_approval' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  totalArtworks?: number;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface Artwork {
+  id: string;
+  artistId: string;
+  artistName: string;
+  artistEmail: string;
+  artistBio?: string;
+  artistAvatar?: string;
+  artistPortfolio?: string;
+  artistCity?: string;
+  title: string;
+  medium: string; // e.g. "Oil on Canvas", "Acrylic", "Resin Art", "Charcoal & Pencil", "Handmade Decor"
+  dimensions: string; // e.g. "24 × 36 inches", "A3 (11.7 × 16.5 in)"
+  yearCreated?: string;
+  description: string;
+  imageUrl: string;
+  additionalImages?: string[];
+  suggestedPrice: number; // Artist's proposed price
+  price: number; // Final selling price set & approved by Admin
+  oldPrice?: number;
+  status: 'pending_review' | 'published' | 'rejected';
+  rejectionReason?: string;
+  featured?: boolean;
+  soldOut?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export const CATEGORIES_MAP: Record<string, string[]> = {
   'new': ['new-collection', 'new-launch', 'best-sellers', 'festive'],
   'personalized-gifts': ['mugs', 'bottles', 'passport-covers', 'laptop-bags', 'travel-cases', 'travelling', 'corporate-gifts', 'wall-clocks', 'diy'],
