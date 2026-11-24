@@ -24,7 +24,8 @@ import {
   PlusCircle,
   Truck,
   Image as ImageIcon,
-  Palette
+  Palette,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
@@ -126,6 +127,7 @@ const CORE_ITEMS = [
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'RTO Management', href: '/admin/rto', icon: Undo2 },
   { label: 'SEO Settings', href: '/admin/seo', icon: Search },
+  { label: 'Admin Manual', href: '/admin/manual', icon: BookOpen },
 ];
 
 export function AdminSidebar() {
@@ -193,6 +195,21 @@ export function AdminSidebar() {
                 {pendingCount}
               </span>
             )}
+          </Link>
+
+          <Link
+            href="/admin/manual"
+            className={cn(
+              "flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold transition-all shadow-sm",
+              pathname.startsWith('/admin/manual')
+                ? "bg-purple-600 text-white shadow-purple-200"
+                : "text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen className="w-4 h-4" />
+              <span>User Manual &amp; Guide</span>
+            </div>
           </Link>
 
           <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 text-[11px] text-purple-900 space-y-1.5 mt-6">

@@ -68,8 +68,8 @@ export default function AdminLayout({
   useEffect(() => {
     if (!isLoginPage) {
       if (isShippingRole) {
-        // Shipping personnel is restricted ONLY to orders
-        if (!pathname.startsWith('/admin/orders')) {
+        // Shipping personnel is restricted to orders and user manual
+        if (!pathname.startsWith('/admin/orders') && !pathname.startsWith('/admin/manual')) {
           router.push('/admin/orders');
         }
         return;
