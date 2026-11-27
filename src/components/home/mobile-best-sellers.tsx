@@ -3,32 +3,39 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import { cacheProduct, cacheProducts } from '@/lib/product-cache';
-import { getOptimizedImageUrl } from '@/lib/image-optimizer';
+import { getOptimizedImageUrl, getImageTransformStyle } from '@/lib/image-optimizer';
 
 interface MobileBestSellersProps {
   cms?: any;
 }
 
-const DEFAULT_BANNER = "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png";
+const DEFAULT_COLLECTION_BANNERS = [
+  {
+    id: 'default-boys-girls-mobile',
+    imageUrl: "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png",
+    mobileImageUrl: "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png",
+    title: "Best Sellers",
+  }
+];
 
 export function MobileBestSellers({ cms }: MobileBestSellersProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+  const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: 'start',
     skipSnaps: false
   });
-  
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
+  const [bannerIdx, setBannerIdx] = useState(0);
 
   const db = useFirestore();
-  
+
   const bestSellersQuery = useMemo(() => {
     if (!db) return null;
     return query(
@@ -37,8 +44,32 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
       limit(9)
     );
   }, [db]);
-  
+
+  const bannersQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'banners'), orderBy('order', 'asc'));
+  }, [db]);
+
   const { data: products, loading } = useCollection<any>(bestSellersQuery, 'home_best_sellers_mobile');
+  const { data: rawBanners } = useCollection<any>(bannersQuery, 'home_banners');
+
+  const collectionBanners = useMemo(() => {
+    if (rawBanners && rawBanners.length > 0) {
+      const list = rawBanners
+        .filter((b) => b.placement === 'collection' && b.active !== false && (b.mobileImageUrl || b.imageUrl))
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+      if (list.length > 0) return list;
+    }
+    return DEFAULT_COLLECTION_BANNERS;
+  }, [rawBanners]);
+
+  useEffect(() => {
+    if (collectionBanners.length <= 1) return;
+    const t = setInterval(() => {
+      setBannerIdx((prev) => (prev + 1) % collectionBanners.length);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [collectionBanners.length]);
 
   useEffect(() => {
     if (products?.length) {
@@ -65,7 +96,6 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
     return () => clearInterval(autoScroll);
   }, [emblaApi, onSelect]);
 
-  // Group products by 3 for the carousel to match the reference layout
   const slides = useMemo(() => {
     const s = [];
     if (products) {
@@ -76,13 +106,14 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
     return s;
   }, [products]);
 
+  const currentBanner = collectionBanners[bannerIdx % collectionBanners.length] || collectionBanners[0];
+
   return (
     <section className="md:hidden px-4 py-6">
-      <div className="bg-[#FFF0F7] rounded-[32px] p-6 shadow-sm overflow-hidden flex flex-col gap-5">
-        
-        <div className="flex items-center justify-between px-2">
+      <div className="bg-[#FFF0F7] rounded-[32px] p-5 shadow-sm overflow-hidden flex flex-col gap-5">
+        <div className="flex items-center justify-between px-1">
           <h2 className="text-xl font-black text-[#FF6B95] tracking-tight uppercase">
-            {cms?.title || "Best Sellers"}
+            {currentBanner?.title || cms?.title || "Best Sellers"}
           </h2>
           <Link href="/shop/new/best-sellers" className="text-[10px] font-black text-[#FF6B95] uppercase tracking-widest opacity-80">
             View All
@@ -91,56 +122,68 @@ export function MobileBestSellers({ cms }: MobileBestSellersProps) {
 
         {loading ? (
           <div className="relative pb-[120px] animate-pulse">
-            <div className="relative w-full aspect-[1.6/1] rounded-[24px] bg-gradient-to-br from-pink-200 to-amber-100 flex items-center justify-center">
-              <h3 className="font-headline font-black text-2xl text-white/80 uppercase">Best Sellers</h3>
-            </div>
+            <div className="relative w-full aspect-[1.6/1] rounded-[24px] bg-gradient-to-br from-pink-200 to-amber-100" />
             <div className="absolute bottom-0 left-0 right-0 z-20 px-2 grid grid-cols-3 gap-2">
               {[0, 1, 2].map((idx) => (
-                <div key={idx} className="bg-white rounded-[14px] p-2 shadow-md space-y-2">
-                  <div className="aspect-square w-full rounded-[10px] bg-pink-50" />
-                  <div className="h-2.5 w-3/4 bg-pink-100 rounded-full" />
-                  <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
+                <div key={idx} className="bg-white rounded-[14px] overflow-hidden shadow-md space-y-2">
+                  <div className="aspect-square w-full bg-pink-50" />
+                  <div className="p-2 space-y-1">
+                    <div className="h-2.5 w-3/4 bg-pink-100 rounded-full" />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         ) : products && products.length > 0 ? (
           <div className="relative pb-[120px]">
-            {/* Banner Area */}
-            <div className="relative w-full aspect-[1.6/1] rounded-[24px] overflow-hidden shadow-inner bg-gradient-to-br from-[#FF6B95] via-[#FF8DB1] to-[#FFD580] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/5" />
-              <h3 className="relative z-10 font-headline font-black text-2xl text-white tracking-tight drop-shadow-sm uppercase">
-                Best Sellers
-              </h3>
+            {/* Auto-Rotating Boys & Girls Collection Banner */}
+            <div className="relative w-full aspect-[1.6/1] rounded-[24px] overflow-hidden shadow-inner bg-pink-100">
+              <AnimatePresence initial={false} mode="wait">
+                <motion.div
+                  key={`mcol-${currentBanner.id || bannerIdx}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 overflow-hidden"
+                >
+                  <img
+                    src={getOptimizedImageUrl(currentBanner.mobileImageUrl || currentBanner.imageUrl, 800, 82)}
+                    alt={currentBanner.title || "Best Sellers"}
+                    loading="lazy"
+                    style={getImageTransformStyle((currentBanner as any).mobileTransform || (currentBanner as any).desktopTransform)}
+                    className="w-full h-full object-cover object-top"
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
 
-            {/* Overlapping Products Carousel */}
-            <div className="absolute bottom-0 left-0 right-0 z-20 px-2" ref={emblaRef}>
+            {/* Overlapping Fixed 1:1 Edge-to-Edge Product Cards */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 px-1" ref={emblaRef}>
               <div className="flex">
                 {slides.map((group, groupIdx) => (
                   <div key={groupIdx} className="flex-[0_0_100%] min-w-0 grid grid-cols-3 gap-2">
                     {group.map((p: any) => (
-                      <Link 
-                        key={p.id} 
-                        href={`/product?id=${p.id}`} 
+                      <Link
+                        key={p.id}
+                        href={`/product?id=${p.id}`}
                         as={`/product/${p.id}`}
                         prefetch={false}
                         onMouseEnter={() => cacheProduct(p)}
                         onTouchStart={() => cacheProduct(p)}
                         className="block"
                       >
-                        <div className="bg-white rounded-[14px] p-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.1)] flex flex-col h-full border border-pink-50/20">
-                          <div className="relative aspect-square w-full rounded-[10px] overflow-hidden bg-slate-50 mb-1.5">
-                            <Image 
-                              src={getOptimizedImageUrl(p.image, 360, 80)} 
-                              alt={p.name} 
-                              fill 
-                              sizes="33vw"
+                        <div className="bg-white rounded-[14px] overflow-hidden shadow-[0_12px_35px_rgba(0,0,0,0.1)] flex flex-col h-full">
+                          <div className="relative aspect-square w-full overflow-hidden">
+                            <img
+                              src={getOptimizedImageUrl(p.image, 360, 80)}
+                              alt={p.name}
                               loading="lazy"
-                              className="object-cover" 
+                              style={getImageTransformStyle(p.imageTransform)}
+                              className="w-full h-full object-cover"
                             />
                           </div>
-                          <div className="px-1 pb-2 space-y-1.5">
+                          <div className="p-2 space-y-1">
                             <h3 className="text-[9px] font-bold text-slate-800 leading-tight line-clamp-2 uppercase">
                               {p.name}
                             </h3>

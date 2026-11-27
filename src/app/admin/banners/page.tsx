@@ -1,55 +1,94 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import Image from 'next/image';
-import { 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Eye, 
-  EyeOff, 
-  ArrowUp, 
-  ArrowDown, 
-  ExternalLink, 
-  Sparkles, 
-  Loader2, 
-  Layers, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
-  HelpCircle,
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Sparkles,
+  Loader2,
+  Layers,
+  Clock,
   Monitor,
   Smartphone,
   Sliders,
   RotateCcw,
-  Maximize2
+  Maximize2,
+  Crop,
+  Upload,
+  CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { useFirestore, useCollection } from '@/firebase';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp, 
-  query, 
-  orderBy 
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  orderBy
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Banner, BannerLayoutStyle } from '@/lib/types';
+import { Banner, BannerLayoutStyle, ImageTransform } from '@/lib/types';
+import { compressImageFile, getImageTransformStyle, getOptimizedImageUrl } from '@/lib/image-optimizer';
+import { HeroTornPaper } from '@/components/ui/hero-torn-paper';
+import { ImageTransformEditor } from '@/components/admin/image-transform-editor';
+
+type BannerPlacement = 'hero' | 'collection' | 'seasonal';
+
+const DEFAULT_HERO_BANNERS = [
+  {
+    placement: 'hero' as BannerPlacement,
+    imageUrl: "https://rohanwakkar.sirv.com/main-home-banner-website-design-home-page.png",
+    mobileImageUrl: "https://rohanwakkar.sirv.com/WhatsApp%20Image%202026-06-20%20at%206.03.34%20PM.jpeg",
+    title: "Main Homepage Banner",
+    linkUrl: "/shop/new/best-sellers",
+    order: 1,
+    active: true,
+    tornPaperBottom: true,
+  }
+];
+
+const DEFAULT_COLLECTION_BANNERS = [
+  {
+    placement: 'collection' as BannerPlacement,
+    imageUrl: "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png",
+    mobileImageUrl: "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png",
+    title: "Best Sellers — Boys & Girls Collection",
+    linkUrl: "/shop/new/best-sellers",
+    order: 1,
+    active: true,
+  }
+];
+
+const DEFAULT_SEASONAL_BANNERS = [
+  {
+    placement: 'seasonal' as BannerPlacement,
+    imageUrl: "https://res.cloudinary.com/dwgnnr10/image/upload/v1785341862/festive-section-image-_zy2mxi.png",
+    mobileImageUrl: "https://res.cloudinary.com/dwgnnr10/image/upload/v1785341862/festive-section-image-_zy2mxi.png",
+    title: "Celebration & Seasonal Sale Collection",
+    linkUrl: "/shop/new/festive",
+    order: 1,
+    active: true,
+  }
+];
 
 const DEFAULT_DESKTOP_STYLE: BannerLayoutStyle = {
   heightMode: 'auto',
@@ -75,42 +114,61 @@ const DEFAULT_MOBILE_STYLE: BannerLayoutStyle = {
   bgColor: '#f0f9ff',
 };
 
-const INITIAL_DEFAULT_BANNERS = [
-  {
-    imageUrl: "https://rohanwakkar.sirv.com/main-home-banner-website-design-home-page.png",
-    mobileImageUrl: "https://rohanwakkar.sirv.com/WhatsApp%20Image%202026-06-20%20at%206.03.34%20PM.jpeg",
-    subHeading: "UNIQUE, PERSONALIZED GIFTS",
-    title: "Unique Gifts, Made for Kids",
-    description: "Create unforgettable childhood memories with our premium handcrafted collection of personalized bags, toys, and essentials.",
-    primaryButtonText: "Explore Shop",
-    linkUrl: "/shop/new/best-sellers",
-    order: 1,
-    active: true
-  }
-];
+const DEFAULT_TRANSFORM: ImageTransform = { zoom: 1, x: 0, y: 0 };
+
+const PLACEMENT_META: Record<BannerPlacement, {
+  label: string;
+  shortLabel: string;
+  desc: string;
+  badgeColor: string;
+}> = {
+  hero: {
+    label: 'Main Hero Banner (16:9 Torn-Paper Template)',
+    shortLabel: 'Main Hero (Torn Paper)',
+    desc: 'Fixed 16:9 template with realistic torn-paper bottom edge and zero "Shop Now" button clutter. Supports multiple auto-rotating slides.',
+    badgeColor: 'bg-purple-100 text-purple-800',
+  },
+  collection: {
+    label: 'New Collection Banners (Boys & Girls Slider)',
+    shortLabel: 'New Collection (Boys & Girls)',
+    desc: 'Replaces or rotates the Boys & Girls showcase banners in the Best Sellers section. Multiple banners rotate automatically every 5 seconds.',
+    badgeColor: 'bg-pink-100 text-pink-800',
+  },
+  seasonal: {
+    label: 'Seasonal Collection & Festival Sale Slider',
+    shortLabel: 'Seasonal / Festival Sale',
+    desc: 'Replace the Raksha Bandhan banner with any festival, seasonal campaign, or promotional offer banners. Rotates automatically every 5 seconds.',
+    badgeColor: 'bg-amber-100 text-amber-800',
+  },
+};
 
 export default function AdminBannersPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
+  const [activePlacementTab, setActivePlacementTab] = useState<BannerPlacement>('hero');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
 
+  // Interactive Crop/Zoom/Drag modal state
+  const [cropTarget, setCropTarget] = useState<'desktop' | 'mobile' | null>(null);
+
   // Form states
+  const [placement, setPlacement] = useState<BannerPlacement>('hero');
   const [imageUrl, setImageUrl] = useState('');
   const [mobileImageUrl, setMobileImageUrl] = useState('');
   const [title, setTitle] = useState('');
-  const [subHeading, setSubHeading] = useState('');
-  const [description, setDescription] = useState('');
-  const [primaryButtonText, setPrimaryButtonText] = useState('Explore Shop');
   const [linkUrl, setLinkUrl] = useState('/shop');
   const [order, setOrder] = useState('1');
   const [active, setActive] = useState(true);
+  const [tornPaperBottom, setTornPaperBottom] = useState(true);
   const [adjustTab, setAdjustTab] = useState<'desktop' | 'mobile'>('desktop');
   const [desktopStyle, setDesktopStyle] = useState<BannerLayoutStyle>(DEFAULT_DESKTOP_STYLE);
   const [mobileStyle, setMobileStyle] = useState<BannerLayoutStyle>(DEFAULT_MOBILE_STYLE);
+  const [desktopTransform, setDesktopTransform] = useState<ImageTransform>(DEFAULT_TRANSFORM);
+  const [mobileTransform, setMobileTransform] = useState<ImageTransform>(DEFAULT_TRANSFORM);
 
   const bannersQuery = useMemo(() => {
     if (!db) return null;
@@ -119,62 +177,89 @@ export default function AdminBannersPage() {
 
   const { data: rawBanners, loading } = useCollection<any>(bannersQuery);
 
-  const banners: Banner[] = useMemo(() => {
+  const allBanners: Banner[] = useMemo(() => {
     if (!rawBanners) return [];
     return rawBanners.map(doc => ({
       id: doc.id,
+      placement: (doc.placement as BannerPlacement) || 'hero',
       imageUrl: doc.imageUrl || '',
       mobileImageUrl: doc.mobileImageUrl || '',
       title: doc.title || '',
-      subHeading: doc.subHeading || '',
-      description: doc.description || '',
-      primaryButtonText: doc.primaryButtonText || 'Explore Shop',
       linkUrl: doc.linkUrl || '/shop',
       order: typeof doc.order === 'number' ? doc.order : parseInt(doc.order, 10) || 0,
       active: doc.active !== false,
       desktopStyle: doc.desktopStyle,
       mobileStyle: doc.mobileStyle,
+      desktopTransform: doc.desktopTransform || { ...DEFAULT_TRANSFORM },
+      mobileTransform: doc.mobileTransform || { ...DEFAULT_TRANSFORM },
+      tornPaperBottom: doc.tornPaperBottom !== false,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
     })).sort((a, b) => a.order - b.order);
   }, [rawBanners]);
 
-  const resetForm = () => {
+  const visibleBanners = useMemo(() => {
+    return allBanners.filter((b) => (b.placement || 'hero') === activePlacementTab);
+  }, [allBanners, activePlacementTab]);
+
+  const resetForm = (targetPlacement: BannerPlacement = activePlacementTab) => {
+    setPlacement(targetPlacement);
     setImageUrl('');
     setMobileImageUrl('');
     setTitle('');
-    setSubHeading('');
-    setDescription('');
-    setPrimaryButtonText('Explore Shop');
     setLinkUrl('/shop');
-    setOrder(String((banners.length || 0) + 1));
+    setOrder(String((allBanners.filter(b => (b.placement || 'hero') === targetPlacement).length || 0) + 1));
     setActive(true);
+    setTornPaperBottom(true);
     setDesktopStyle({ ...DEFAULT_DESKTOP_STYLE });
     setMobileStyle({ ...DEFAULT_MOBILE_STYLE });
+    setDesktopTransform({ ...DEFAULT_TRANSFORM });
+    setMobileTransform({ ...DEFAULT_TRANSFORM });
     setAdjustTab('desktop');
     setEditingBanner(null);
   };
 
   const handleOpenCreate = () => {
-    resetForm();
+    resetForm(activePlacementTab);
     setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (banner: Banner) => {
     setEditingBanner(banner);
+    setPlacement((banner.placement as BannerPlacement) || 'hero');
     setImageUrl(banner.imageUrl || '');
     setMobileImageUrl(banner.mobileImageUrl || '');
     setTitle(banner.title || '');
-    setSubHeading(banner.subHeading || '');
-    setDescription(banner.description || '');
-    setPrimaryButtonText(banner.primaryButtonText || 'Explore Shop');
     setLinkUrl(banner.linkUrl || '/shop');
     setOrder(String(banner.order || 1));
     setActive(banner.active !== false);
+    setTornPaperBottom(banner.tornPaperBottom !== false);
     setDesktopStyle({ ...DEFAULT_DESKTOP_STYLE, ...(banner.desktopStyle || {}) });
     setMobileStyle({ ...DEFAULT_MOBILE_STYLE, ...(banner.mobileStyle || {}) });
+    setDesktopTransform({ ...DEFAULT_TRANSFORM, ...(banner.desktopTransform || {}) });
+    setMobileTransform({ ...DEFAULT_TRANSFORM, ...(banner.mobileTransform || {}) });
     setAdjustTab('desktop');
     setIsDialogOpen(true);
+  };
+
+  const handleDeviceUpload = async (target: 'desktop' | 'mobile', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageFile(file, target === 'mobile' ? 1000 : 1600, 0.84);
+      if (target === 'desktop') {
+        setImageUrl(compressed);
+        setDesktopTransform({ zoom: 1, x: 0, y: 0 });
+      } else {
+        setMobileImageUrl(compressed);
+        setMobileTransform({ zoom: 1, x: 0, y: 0 });
+      }
+      toast({ title: 'Image Uploaded', description: 'Now you can use Zoom, Crop & Reposition tools to adjust the fit.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: err.message });
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,8 +269,8 @@ export default function AdminBannersPage() {
     if (!imageUrl.trim()) {
       toast({
         variant: "destructive",
-        title: "Image URL Required",
-        description: "Please enter the desktop/main banner image URL."
+        title: "Banner Image Required",
+        description: "Please upload a banner image or paste an HTTPS URL."
       });
       return;
     }
@@ -193,17 +278,18 @@ export default function AdminBannersPage() {
     setIsSubmitting(true);
     try {
       const bannerData = {
+        placement,
         imageUrl: imageUrl.trim(),
         mobileImageUrl: mobileImageUrl.trim() || imageUrl.trim(),
         title: title.trim(),
-        subHeading: subHeading.trim(),
-        description: description.trim(),
-        primaryButtonText: primaryButtonText.trim() || 'Explore Shop',
         linkUrl: linkUrl.trim() || '/shop',
         order: Number(order) || 1,
         active: Boolean(active),
+        tornPaperBottom: placement === 'hero' ? Boolean(tornPaperBottom) : false,
         desktopStyle,
         mobileStyle,
+        desktopTransform,
+        mobileTransform,
         updatedAt: serverTimestamp()
       };
 
@@ -211,7 +297,7 @@ export default function AdminBannersPage() {
         await updateDoc(doc(db, 'banners', editingBanner.id), bannerData);
         toast({
           title: "Banner Updated!",
-          description: "Changes are now live on the homepage carousel."
+          description: "Your customized crop, zoom & position changes are live."
         });
       } else {
         await addDoc(collection(db, 'banners'), {
@@ -220,12 +306,12 @@ export default function AdminBannersPage() {
         });
         toast({
           title: "Banner Added!",
-          description: "New banner will appear in the 5-second rotation."
+          description: "Banner added to the 5-second automatic slider."
         });
       }
 
       setIsDialogOpen(false);
-      resetForm();
+      resetForm(placement);
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -245,93 +331,85 @@ export default function AdminBannersPage() {
         updatedAt: serverTimestamp()
       });
       toast({
-        title: banner.active ? "Banner Deactivated" : "Banner Activated",
-        description: banner.active
-          ? "This banner will not appear on the website."
-          : "This banner is now active in the 5-second carousel."
+        title: banner.active ? "Banner Paused" : "Banner Activated"
       });
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to toggle banner status."
-      });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to toggle banner status." });
     }
   };
 
   const handleDelete = async (bannerId: string) => {
     if (!db) return;
     if (!window.confirm("Are you sure you want to delete this banner?")) return;
-
     try {
       await deleteDoc(doc(db, 'banners', bannerId));
-      toast({
-        title: "Banner Deleted",
-        description: "Banner has been removed from the homepage slider."
-      });
+      toast({ title: "Banner Deleted" });
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error deleting banner",
-        description: err.message || "Failed to delete banner."
-      });
+      toast({ variant: "destructive", title: "Delete Failed", description: err.message });
     }
   };
 
-  const handleSeedDefaults = async () => {
+  const handleSeedCurrentTab = async () => {
     if (!db) return;
     setIsSeeding(true);
     try {
-      for (const item of INITIAL_DEFAULT_BANNERS) {
+      const seeds =
+        activePlacementTab === 'collection'
+          ? DEFAULT_COLLECTION_BANNERS
+          : activePlacementTab === 'seasonal'
+            ? DEFAULT_SEASONAL_BANNERS
+            : DEFAULT_HERO_BANNERS;
+
+      for (const item of seeds) {
         await addDoc(collection(db, 'banners'), {
           ...item,
+          desktopTransform: DEFAULT_TRANSFORM,
+          mobileTransform: DEFAULT_TRANSFORM,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
       }
       toast({
-        title: "Default Banner Initialized!",
-        description: "You can now edit it or add more banners alongside it."
+        title: "Existing Banner Loaded!",
+        description: "Click Edit on it to replace, crop, zoom, or add more slides."
       });
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error initializing",
-        description: err.message
-      });
+      toast({ variant: "destructive", title: "Error initializing", description: err.message });
     } finally {
       setIsSeeding(false);
     }
   };
 
+  const currentMeta = PLACEMENT_META[activePlacementTab];
+
   return (
-    <div className="space-y-8 p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="space-y-7 p-4 md:p-8 max-w-7xl mx-auto">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold">
             <Layers className="w-3.5 h-3.5" />
-            <span>Homepage Hero Carousel</span>
+            <span>Complete Banner &amp; Campaign Control</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-headline font-black text-slate-800 tracking-tight">
-            Banner Management
+            Homepage Banners &amp; Sliders
           </h1>
           <p className="text-xs md:text-sm text-slate-500 font-medium">
-            Add banner images using image URLs. Active banners automatically slide one by one every 5 seconds on the website.
+            Manage Main 16:9 Torn-Paper Hero, Boys &amp; Girls Collection Slider, and Seasonal Sale Slider with full zoom, resize, crop, and drag positioning.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          {banners.length === 0 && !loading && (
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          {visibleBanners.length === 0 && !loading && (
             <Button
               type="button"
               variant="outline"
-              onClick={handleSeedDefaults}
+              onClick={handleSeedCurrentTab}
               disabled={isSeeding}
               className="rounded-2xl border-purple-200 text-purple-700 hover:bg-purple-50 text-xs font-bold h-11"
             >
               {isSeeding ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Sparkles className="w-4 h-4 mr-1.5 text-purple-600" />}
-              Load Default Banner
+              Load Existing Banner
             </Button>
           )}
 
@@ -341,89 +419,124 @@ export default function AdminBannersPage() {
             className="flex-1 sm:flex-none rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs h-11 px-5 shadow-md shadow-purple-500/20 gap-2 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Add New Banner
+            Add {activePlacementTab === 'hero' ? 'Hero Banner' : activePlacementTab === 'collection' ? 'Collection Banner' : 'Seasonal Banner'}
           </Button>
         </div>
       </div>
 
-      {/* 5-Second Notice Banner */}
+      {/* Placement Tabs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {(['hero', 'collection', 'seasonal'] as BannerPlacement[]).map((key) => {
+          const meta = PLACEMENT_META[key];
+          const count = allBanners.filter((b) => (b.placement || 'hero') === key).length;
+          const isSelected = activePlacementTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActivePlacementTab(key)}
+              className={cn(
+                "text-left p-4 rounded-2xl border-2 transition-all",
+                isSelected
+                  ? "bg-white border-purple-600 shadow-md shadow-purple-500/10"
+                  : "bg-white/70 border-slate-200 hover:border-purple-200"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className={cn("text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full", meta.badgeColor)}>
+                  {count} Slide{count === 1 ? '' : 's'}
+                </span>
+                {isSelected && <CheckCircle2 className="w-4 h-4 text-purple-600" />}
+              </div>
+              <p className="font-extrabold text-sm text-slate-900">{meta.shortLabel}</p>
+              <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{meta.desc}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Section Context Notice */}
       <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl text-xs text-purple-900 font-semibold">
         <Clock className="w-4 h-4 text-purple-600 shrink-0" />
         <span>
-          <strong>Auto-Rotation Enabled:</strong> Customers on the homepage will see these banners transition automatically every <strong>5 seconds</strong>. Users can also swipe or use the left/right arrows to browse.
+          <strong>{currentMeta.label}:</strong> {currentMeta.desc}
         </span>
       </div>
 
-      {/* Banners Grid / List */}
+      {/* Banners Grid */}
       {loading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm animate-pulse space-y-4">
               <div className="w-full aspect-[16/9] bg-slate-100 rounded-2xl" />
               <div className="h-5 bg-slate-100 rounded-lg w-2/3" />
-              <div className="h-4 bg-slate-50 rounded-lg w-1/2" />
             </div>
           ))}
         </div>
-      ) : banners.length === 0 ? (
-        <Card className="rounded-3xl border-dashed border-2 border-slate-200 bg-white/70 p-12 text-center">
+      ) : visibleBanners.length === 0 ? (
+        <Card className="rounded-3xl border-dashed border-2 border-slate-200 bg-white/70 p-10 text-center">
           <CardContent className="space-y-4 max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
-              <Layers className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+              <Layers className="w-7 h-7" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">No Banners Added Yet</h3>
+            <h3 className="text-lg font-bold text-slate-800">No Custom Banners Added for This Section Yet</h3>
             <p className="text-xs text-slate-500 font-medium">
-              The website is currently displaying the fallback default banner. Click &quot;Load Default Banner&quot; to import it or click &quot;Add New Banner&quot; to add your own custom image URLs!
+              The storefront currently displays the fallback default artwork. Click &quot;Load Existing Banner&quot; to edit/replace it, or upload a brand-new banner!
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleSeedDefaults}
+                onClick={handleSeedCurrentTab}
                 disabled={isSeeding}
                 className="w-full sm:w-auto rounded-xl border-purple-200 text-purple-700 text-xs font-bold"
               >
                 {isSeeding ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Sparkles className="w-4 h-4 mr-1.5 text-purple-600" />}
-                Import Default Banner
+                Import Existing Banner
               </Button>
               <Button
                 type="button"
                 onClick={handleOpenCreate}
                 className="w-full sm:w-auto rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold"
               >
-                <Plus className="w-4 h-4 mr-1.5" /> Add First Banner
+                <Plus className="w-4 h-4 mr-1.5" /> Upload New Banner
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {banners.map((b, index) => (
-            <Card 
-              key={b.id} 
+          {visibleBanners.map((b, index) => (
+            <Card
+              key={b.id}
               className={cn(
                 "rounded-3xl border transition-all duration-300 overflow-hidden group hover:shadow-xl bg-white flex flex-col",
                 b.active ? "border-purple-100/80" : "border-slate-200 opacity-60"
               )}
             >
-              {/* Image Preview Box */}
+              {/* Image Preview Box with Torn Paper if hero */}
               <div className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden border-b border-slate-100">
                 {b.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={b.imageUrl}
+                    src={getOptimizedImageUrl(b.imageUrl, 800, 80)}
                     alt={b.title || `Banner ${index + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    style={getImageTransformStyle(b.desktopTransform)}
+                    className="w-full h-full object-cover"
                     loading="lazy"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs font-bold">
-                    No Image URL
+                    No Image
                   </div>
                 )}
 
+                {activePlacementTab === 'hero' && b.tornPaperBottom !== false && (
+                  <HeroTornPaper className="absolute -bottom-[1px] left-0 right-0 scale-y-75 origin-bottom" />
+                )}
+
                 {/* Badges Overlay */}
-                <div className="absolute top-3 left-3 flex items-center gap-2">
+                <div className="absolute top-3 left-3 flex items-center gap-2 z-20">
                   <span className="px-2.5 py-1 rounded-full bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-black shadow-md">
                     #{b.order || index + 1}
                   </span>
@@ -431,35 +544,19 @@ export default function AdminBannersPage() {
                     "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-md",
                     b.active ? "bg-emerald-500/90 text-white" : "bg-rose-500/90 text-white"
                   )}>
-                    {b.active ? "Active" : "Disabled"}
+                    {b.active ? "Active" : "Paused"}
                   </span>
                 </div>
-
-                {b.mobileImageUrl && b.mobileImageUrl !== b.imageUrl && (
-                  <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded-md bg-purple-900/80 text-white text-[9px] font-bold backdrop-blur-sm">
-                    Mobile Specific Image Set
-                  </div>
-                )}
               </div>
 
               {/* Details Content */}
               <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-1.5">
-                  {b.subHeading && (
-                    <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
-                      {b.subHeading}
-                    </p>
-                  )}
                   <h3 className="text-base font-bold text-slate-900 line-clamp-1">
-                    {b.title || `Banner #${b.order || index + 1}`}
+                    {b.title || `Slide #${b.order || index + 1}`}
                   </h3>
-                  {b.description && (
-                    <p className="text-xs text-slate-500 font-medium line-clamp-2">
-                      {b.description}
-                    </p>
-                  )}
                   {b.linkUrl && (
-                    <div className="flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-slate-600">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
                       <ExternalLink className="w-3 h-3 text-purple-500 shrink-0" />
                       <span className="truncate">{b.linkUrl}</span>
                     </div>
@@ -479,7 +576,7 @@ export default function AdminBannersPage() {
                     )}
                   >
                     {b.active ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    {b.active ? "Enabled" : "Disabled"}
+                    {b.active ? "Enabled" : "Paused"}
                   </button>
 
                   <div className="flex items-center gap-1.5">
@@ -490,7 +587,7 @@ export default function AdminBannersPage() {
                       onClick={() => handleOpenEdit(b)}
                       className="rounded-xl h-8 px-2.5 text-xs font-bold text-slate-700 border-slate-200 hover:bg-slate-50"
                     >
-                      <Edit className="w-3.5 h-3.5 mr-1 text-slate-500" /> Edit
+                      <Edit className="w-3.5 h-3.5 mr-1 text-slate-500" /> Edit &amp; Crop
                     </Button>
 
                     <Button
@@ -515,112 +612,144 @@ export default function AdminBannersPage() {
         <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-headline font-black text-slate-900 tracking-tight">
-              {editingBanner ? "Edit Banner & Layout Adjustments" : "Add New Banner & Layout Adjustments"}
+              {editingBanner ? `Edit ${PLACEMENT_META[placement].shortLabel}` : `Add ${PLACEMENT_META[placement].shortLabel}`}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Add your banner URLs and fine-tune Desktop &amp; Mobile width, height/length, image fit, alignment, and CSS padding before submitting.
+              Upload an image or paste URL, then use the Interactive Crop/Zoom/Drag tool to fit it cleanly inside the template.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="pt-3">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* LEFT COLUMN: Banner URLs & Content */}
+              {/* LEFT COLUMN: Image Upload, URL, Title, Order */}
               <div className="lg:col-span-6 space-y-4">
-                {/* Desktop / Main Image URL */}
+                {/* Banner Section Selector */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>Desktop / Main Banner Image URL *</span>
-                    <span className="text-[10px] text-purple-600 font-semibold">Required</span>
-                  </Label>
-                  <Input
-                    type="url"
-                    required
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://rohanwakkar.sirv.com/my-banner.png"
-                    className="rounded-xl h-10 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                  />
+                  <Label className="text-xs font-bold text-slate-700">Banner Placement Section</Label>
+                  <select
+                    value={placement}
+                    onChange={(e) => setPlacement(e.target.value as BannerPlacement)}
+                    className="w-full h-10 rounded-xl border border-slate-200 px-3 text-xs font-bold bg-white"
+                  >
+                    <option value="hero">Main Homepage Banner (16:9 Torn Paper)</option>
+                    <option value="collection">New Collection Banner (Boys &amp; Girls Slider)</option>
+                    <option value="seasonal">Seasonal / Festival Sale Slider</option>
+                  </select>
                 </div>
 
-                {/* Mobile Image URL (Optional) */}
+                {/* Desktop Image URL + Upload + Crop Button */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>Mobile Specific Image URL (Optional)</span>
-                    <span className="text-[10px] text-slate-400 font-normal">Falls back to desktop URL</span>
+                    <span>Desktop Banner Image *</span>
+                    <span className="text-[10px] text-purple-600 font-semibold">16:9 Recommended</span>
                   </Label>
-                  <Input
-                    type="url"
-                    value={mobileImageUrl}
-                    onChange={(e) => setMobileImageUrl(e.target.value)}
-                    placeholder="https://rohanwakkar.sirv.com/my-mobile-banner.jpeg"
-                    className="rounded-xl h-10 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      required
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      placeholder="https://... or upload from device →"
+                      className="flex-1 rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 h-10 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold shrink-0">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleDeviceUpload('desktop', e)} />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCropTarget('desktop')}
+                      disabled={!imageUrl.trim()}
+                      className="rounded-xl h-10 px-3 text-xs font-bold border-purple-200 text-purple-700 gap-1 shrink-0"
+                    >
+                      <Crop className="w-3.5 h-3.5" /> Zoom / Crop
+                    </Button>
+                  </div>
                 </div>
 
-                {/* Optional Banner Title & Subheading */}
+                {/* Mobile Image URL + Upload + Crop Button */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Mobile Specific Image (Optional)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Uses desktop image if empty</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={mobileImageUrl}
+                      onChange={(e) => setMobileImageUrl(e.target.value)}
+                      placeholder="https://... (optional mobile banner)"
+                      className="flex-1 rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold shrink-0">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleDeviceUpload('mobile', e)} />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCropTarget('mobile')}
+                      disabled={!mobileImageUrl.trim() && !imageUrl.trim()}
+                      className="rounded-xl h-10 px-3 text-xs font-bold border-slate-200 text-slate-700 gap-1 shrink-0"
+                    >
+                      <Crop className="w-3.5 h-3.5" /> Crop
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Section Title (useful for Collection/Seasonal headings) & Link URL */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Banner Heading (Optional)</Label>
+                    <Label className="text-xs font-bold text-slate-700">
+                      {placement === 'hero' ? 'Internal Slide Name (No overlay)' : 'Section Heading / Campaign Title'}
+                    </Label>
                     <Input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Unique Gifts, Made for Kids"
+                      placeholder={placement === 'seasonal' ? 'e.g. Diwali Special Collection' : 'e.g. Kids Summer Collection'}
                       className="rounded-xl h-10 border-slate-200 text-xs font-medium"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Badge / Subheading (Optional)</Label>
-                    <Input
-                      type="text"
-                      value={subHeading}
-                      onChange={(e) => setSubHeading(e.target.value)}
-                      placeholder="e.g. UNIQUE, PERSONALIZED GIFTS"
-                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Short Description (Optional)</Label>
-                  <Input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. Create unforgettable memories with personalized gifts."
-                    className="rounded-xl h-10 border-slate-200 text-xs font-medium"
-                  />
-                </div>
-
-                {/* Button Text & Target Link */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">CTA Button Text (Optional)</Label>
-                    <Input
-                      type="text"
-                      value={primaryButtonText}
-                      onChange={(e) => setPrimaryButtonText(e.target.value)}
-                      placeholder="e.g. Explore Shop"
-                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Destination Link URL</Label>
+                    <Label className="text-xs font-bold text-slate-700">Click Destination Link</Label>
                     <Input
                       type="text"
                       value={linkUrl}
                       onChange={(e) => setLinkUrl(e.target.value)}
-                      placeholder="e.g. /shop or /collections"
+                      placeholder="/shop/new/festive or /collections"
                       className="rounded-xl h-10 border-slate-200 text-xs font-medium"
                     />
                   </div>
                 </div>
 
+                {/* Torn paper toggle for Hero */}
+                {placement === 'hero' && (
+                  <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-extrabold text-purple-950">Fixed Torn-Paper Bottom Edge Template</p>
+                      <p className="text-[10px] text-purple-700">Locked cleanly at the bottom edge of 16:9 banners while scrolling.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTornPaperBottom(!tornPaperBottom)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-xs font-bold border",
+                        tornPaperBottom ? "bg-purple-600 text-white border-purple-600" : "bg-white text-slate-600 border-slate-200"
+                      )}
+                    >
+                      {tornPaperBottom ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                )}
+
                 {/* Order and Active status */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">Slide Order</Label>
+                    <Label className="text-xs font-bold text-slate-700">Slider Order (#)</Label>
                     <Input
                       type="number"
                       min="1"
@@ -630,7 +759,7 @@ export default function AdminBannersPage() {
                     />
                   </div>
                   <div className="space-y-1.5 flex flex-col justify-end">
-                    <Label className="text-xs font-bold text-slate-700">Status</Label>
+                    <Label className="text-xs font-bold text-slate-700">Visibility</Label>
                     <button
                       type="button"
                       onClick={() => setActive(!active)}
@@ -641,7 +770,7 @@ export default function AdminBannersPage() {
                     >
                       <span className="flex items-center gap-1.5">
                         <span className={cn("w-2 h-2 rounded-full", active ? "bg-emerald-500" : "bg-slate-400")} />
-                        {active ? "Active" : "Hidden"}
+                        {active ? "Active Slide" : "Paused"}
                       </span>
                       <span className="text-[10px] underline">Toggle</span>
                     </button>
@@ -649,12 +778,13 @@ export default function AdminBannersPage() {
                 </div>
               </div>
 
-              {/* RIGHT COLUMN: Desktop & Mobile CSS / Layout Adjustments + Live Preview */}
+              {/* RIGHT COLUMN: Live Template Preview + Crop/CSS Adjustment Panel */}
               <div className="lg:col-span-6 bg-slate-50/90 border border-slate-200 rounded-2xl p-4 space-y-4">
                 {(() => {
                   const isMobileTab = adjustTab === 'mobile';
                   const currentLayout = isMobileTab ? mobileStyle : desktopStyle;
                   const setCurrentLayout = isMobileTab ? setMobileStyle : setDesktopStyle;
+                  const currentTransform = isMobileTab ? mobileTransform : desktopTransform;
                   const previewImg = isMobileTab ? (mobileImageUrl.trim() || imageUrl.trim()) : imageUrl.trim();
 
                   const updateField = <K extends keyof BannerLayoutStyle>(key: K, val: BannerLayoutStyle[K]) => {
@@ -666,14 +796,14 @@ export default function AdminBannersPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 text-xs font-black text-slate-800 uppercase tracking-wider">
                           <Sliders className="w-3.5 h-3.5 text-purple-600" />
-                          <span>Layout &amp; CSS Adjustments</span>
+                          <span>Template Preview &amp; Adjustments</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => setCurrentLayout(isMobileTab ? { ...DEFAULT_MOBILE_STYLE } : { ...DEFAULT_DESKTOP_STYLE })}
                           className="text-[10px] font-bold text-slate-500 hover:text-purple-600 flex items-center gap-1"
                         >
-                          <RotateCcw className="w-3 h-3" /> Reset {isMobileTab ? 'Mobile' : 'Desktop'}
+                          <RotateCcw className="w-3 h-3" /> Reset CSS
                         </button>
                       </div>
 
@@ -701,35 +831,26 @@ export default function AdminBannersPage() {
                         </button>
                       </div>
 
-                      {/* Quick 1-Click Fit Presets */}
-                      <div className="flex flex-wrap gap-1.5">
-                        <button
+                      {/* Interactive Crop Launcher Banner */}
+                      <div className="flex items-center justify-between gap-2 bg-purple-100/70 border border-purple-200 rounded-xl p-2.5">
+                        <div className="text-[11px] font-bold text-purple-900">
+                          Zoom: <span className="font-black">{Math.round((currentTransform.zoom || 1) * 100)}%</span> | Pos: {currentTransform.x}%, {currentTransform.y}%
+                        </div>
+                        <Button
                           type="button"
-                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'contain', paddingTop: 0, paddingBottom: 0, paddingX: 0 }))}
-                          className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 text-[10px] font-bold flex items-center gap-1"
+                          size="sm"
+                          disabled={!previewImg}
+                          onClick={() => setCropTarget(isMobileTab ? 'mobile' : 'desktop')}
+                          className="h-8 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold gap-1"
                         >
-                          <Maximize2 className="w-3 h-3" /> Full Width (No Crop)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'cover', objectPosition: 'center center' }))}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold"
-                        >
-                          Full Bleed Cover
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'fill', paddingX: 0 }))}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold"
-                        >
-                          Stretch 100%
-                        </button>
+                          <Crop className="w-3.5 h-3.5" /> Drag / Zoom / Crop
+                        </Button>
                       </div>
 
-                      {/* Live Scaled Preview */}
+                      {/* Live Preview Inside Exact Template */}
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase">
-                          Live {isMobileTab ? 'Mobile' : 'Desktop'} Preview:
+                          Live {isMobileTab ? 'Mobile' : 'Desktop'} Template Preview:
                         </span>
                         <div className={cn(
                           "mx-auto border border-slate-300 rounded-xl overflow-hidden bg-slate-200 flex items-center justify-center",
@@ -744,7 +865,7 @@ export default function AdminBannersPage() {
                               paddingRight: `${Math.round((currentLayout.paddingX || 0) * 0.3)}px`,
                               height: currentLayout.heightMode === 'custom' && currentLayout.heightPx
                                 ? `${Math.max(80, Math.round(currentLayout.heightPx * (isMobileTab ? 0.38 : 0.28)))}px`
-                                : isMobileTab ? '220px' : '150px',
+                                : isMobileTab ? '220px' : '170px',
                               width: currentLayout.widthMode === 'contained' ? '88%' : '100%',
                             }}
                             className="relative overflow-hidden transition-all"
@@ -756,21 +877,25 @@ export default function AdminBannersPage() {
                                 alt="Live Preview"
                                 style={{
                                   objectFit: currentLayout.objectFit || 'cover',
-                                  objectPosition: currentLayout.objectPosition || 'center top',
+                                  objectPosition: currentLayout.objectPosition || 'center center',
+                                  ...getImageTransformStyle(currentTransform),
                                 }}
                                 className="w-full h-full"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-slate-400">
-                                Enter Image URL to Preview
+                                Upload or Enter Image URL to Preview
                               </div>
+                            )}
+                            {placement === 'hero' && tornPaperBottom && (
+                              <HeroTornPaper className="absolute -bottom-[1px] left-0 right-0 scale-y-50 origin-bottom" />
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Adjustment Controls */}
-                      <div className="grid grid-cols-2 gap-3 text-xs">
+                      {/* CSS Adjustments */}
+                      <div className="grid grid-cols-2 gap-2.5 text-xs">
                         <div className="space-y-1">
                           <Label className="text-[11px] font-bold text-slate-600">Width</Label>
                           <select
@@ -790,9 +915,9 @@ export default function AdminBannersPage() {
                             onChange={(e) => updateField('objectFit', e.target.value as any)}
                             className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
                           >
-                            <option value="cover">Cover (Fill Area)</option>
-                            <option value="contain">Contain (Full Image, No Crop)</option>
-                            <option value="fill">Fill (Stretch 100%)</option>
+                            <option value="cover">Cover (Fill Edge-to-Edge)</option>
+                            <option value="contain">Contain (Full Image)</option>
+                            <option value="fill">Stretch 100%</option>
                           </select>
                         </div>
 
@@ -803,31 +928,27 @@ export default function AdminBannersPage() {
                             onChange={(e) => updateField('heightMode', e.target.value as any)}
                             className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
                           >
-                            <option value="auto">Auto Aspect Ratio</option>
-                            <option value="custom">Custom Length (px)</option>
+                            <option value="auto">16:9 Template Auto</option>
+                            <option value="custom">Custom Height (px)</option>
                           </select>
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-[11px] font-bold text-slate-600">Image Alignment</Label>
-                          <select
-                            value={currentLayout.objectPosition || 'center top'}
-                            onChange={(e) => updateField('objectPosition', e.target.value as any)}
-                            className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                          <Label className="text-[11px] font-bold text-slate-600">Quick Fit Preset</Label>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'cover', paddingTop: 0, paddingBottom: 0, paddingX: 0 }))}
+                            className="w-full h-9 rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-purple-700 text-[11px] font-bold flex items-center justify-center gap-1"
                           >
-                            <option value="center top">Top</option>
-                            <option value="center center">Center</option>
-                            <option value="center bottom">Bottom</option>
-                            <option value="left center">Left</option>
-                            <option value="right center">Right</option>
-                          </select>
+                            <Maximize2 className="w-3 h-3" /> Edge-to-Edge 100%
+                          </button>
                         </div>
                       </div>
 
                       {currentLayout.heightMode === 'custom' && (
                         <div className="space-y-1">
                           <div className="flex justify-between text-[11px] font-bold text-slate-700">
-                            <span>Banner Length / Height</span>
+                            <span>Custom Height</span>
                             <span className="text-purple-700">{currentLayout.heightPx || (isMobileTab ? 460 : 620)}px</span>
                           </div>
                           <input
@@ -842,69 +963,51 @@ export default function AdminBannersPage() {
                         </div>
                       )}
 
-                      {/* CSS Padding Sliders */}
-                      <div className="space-y-2.5 pt-1 border-t border-slate-200">
+                      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200">
                         <div className="space-y-1">
-                          <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                            <span>Padding Top</span>
-                            <span className="text-purple-700">{currentLayout.paddingTop || 0}px</span>
+                          <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                            <span>Pad Top</span>
+                            <span>{currentLayout.paddingTop || 0}px</span>
                           </div>
                           <input
                             type="range"
                             min={0}
-                            max={200}
+                            max={160}
                             step={4}
                             value={currentLayout.paddingTop || 0}
                             onChange={(e) => updateField('paddingTop', Number(e.target.value))}
                             className="w-full accent-purple-600"
                           />
                         </div>
-
                         <div className="space-y-1">
-                          <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                            <span>Padding Bottom</span>
-                            <span className="text-purple-700">{currentLayout.paddingBottom || 0}px</span>
+                          <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                            <span>Pad Bottom</span>
+                            <span>{currentLayout.paddingBottom || 0}px</span>
                           </div>
                           <input
                             type="range"
                             min={0}
-                            max={200}
+                            max={160}
                             step={4}
                             value={currentLayout.paddingBottom || 0}
                             onChange={(e) => updateField('paddingBottom', Number(e.target.value))}
                             className="w-full accent-purple-600"
                           />
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 items-center">
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                              <span>Left / Right Padding</span>
-                              <span className="text-purple-700">{currentLayout.paddingX || 0}px</span>
-                            </div>
-                            <input
-                              type="range"
-                              min={0}
-                              max={120}
-                              step={4}
-                              value={currentLayout.paddingX || 0}
-                              onChange={(e) => updateField('paddingX', Number(e.target.value))}
-                              className="w-full accent-purple-600"
-                            />
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                            <span>Pad X</span>
+                            <span>{currentLayout.paddingX || 0}px</span>
                           </div>
-
-                          <div className="space-y-1">
-                            <Label className="text-[11px] font-bold text-slate-600 block">Background Color</Label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                value={currentLayout.bgColor || '#f0f9ff'}
-                                onChange={(e) => updateField('bgColor', e.target.value)}
-                                className="w-9 h-8 rounded-lg border border-slate-200 cursor-pointer"
-                              />
-                              <span className="text-[10px] font-mono text-slate-500">{currentLayout.bgColor || '#f0f9ff'}</span>
-                            </div>
-                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={4}
+                            value={currentLayout.paddingX || 0}
+                            onChange={(e) => updateField('paddingX', Number(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
                         </div>
                       </div>
                     </>
@@ -933,13 +1036,33 @@ export default function AdminBannersPage() {
                     Saving...
                   </>
                 ) : (
-                  editingBanner ? "Update Banner" : "Add Banner"
+                  editingBanner ? "Save & Publish Banner" : "Publish Banner"
                 )}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Interactive Banner Crop / Zoom / Drag Modal */}
+      <ImageTransformEditor
+        open={cropTarget !== null}
+        onOpenChange={(o) => !o && setCropTarget(null)}
+        imageUrl={cropTarget === 'mobile' ? (mobileImageUrl || imageUrl) : imageUrl}
+        initialTransform={cropTarget === 'mobile' ? mobileTransform : desktopTransform}
+        aspectRatio={cropTarget === 'mobile' ? '3/4' : placement === 'hero' ? '16/9' : '16/7'}
+        showTornPaperOverlay={placement === 'hero' && tornPaperBottom}
+        title={cropTarget === 'mobile' ? 'Adjust Mobile Banner (Zoom, Crop & Position)' : 'Adjust Desktop Banner (Zoom, Crop & Position)'}
+        onSave={({ imageUrl: updatedUrl, transform }) => {
+          if (cropTarget === 'mobile') {
+            setMobileImageUrl(updatedUrl);
+            setMobileTransform(transform);
+          } else {
+            setImageUrl(updatedUrl);
+            setDesktopTransform(transform);
+          }
+        }}
+      />
     </div>
   );
 }

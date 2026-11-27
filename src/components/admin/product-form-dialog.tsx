@@ -19,7 +19,8 @@ import {
   ClipboardPaste,
   Upload,
   Receipt,
-  X
+  X,
+  Crop
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,9 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/fi
 import { useToast } from '@/hooks/use-toast';
 import { cacheProduct } from '@/lib/product-cache';
 import { cn } from '@/lib/utils';
+import { compressImageFile, getImageTransformStyle } from '@/lib/image-optimizer';
+import type { ImageTransform } from '@/lib/types';
+import { ImageTransformEditor } from './image-transform-editor';
 
 export const CATEGORIES_LIST = [
   { 
@@ -140,8 +144,14 @@ export function ProductFormDialog({
   const [stockQuantity, setStockQuantity] = useState('50');
   const [badge, setBadge] = useState('None');
   
-  // Multiple Image URLs
+  // Multiple Image URLs & 1:1 Image Transforms
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [imageTransforms, setImageTransforms] = useState<Record<string, ImageTransform>>({});
+  const [cropModalTarget, setCropModalTarget] = useState<
+    | { type: 'gallery'; idx: number }
+    | { type: 'color'; colorIdx: number; imgIdx: number }
+    | null
+  >(null);
   const [bulkUrlInput, setBulkUrlInput] = useState('');
   const [showBulkPaste, setShowBulkPaste] = useState(false);
 
@@ -188,6 +198,14 @@ export function ProductFormDialog({
         ? [productToEdit.image] 
         : [''];
       setImageUrls(existingImages);
+
+      const savedTransforms: Record<string, ImageTransform> = {
+        ...(productToEdit.imageTransforms || {})
+      };
+      if (productToEdit.imageTransform && existingImages[0] && !savedTransforms[existingImages[0]]) {
+        savedTransforms[existingImages[0]] = productToEdit.imageTransform;
+      }
+      setImageTransforms(savedTransforms);
 
       // Colors
       if (productToEdit.colors && Array.isArray(productToEdit.colors) && productToEdit.colors.length > 0) {
@@ -238,6 +256,7 @@ export function ProductFormDialog({
       setStockQuantity('50');
       setBadge('None');
       setImageUrls(['']);
+      setImageTransforms({});
       setColors([
         { name: 'Royal Blue', hex: '#0284c7', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 },
         { name: 'Pastel Pink', hex: '#f472b6', price: '', oldPrice: '', images: [], stockStatus: 'In Stock', stock: 50 },
@@ -344,21 +363,45 @@ export function ProductFormDialog({
     ]);
   };
 
-  const handleFileUploadForColor = (colorIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUploadForGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const compressed = await compressImageFile(file, 900, 0.84);
+        uploaded.push(compressed);
+      }
+      setImageUrls((prev) => {
+        const clean = prev.filter((u) => u.trim().length > 0);
+        return [...clean, ...uploaded];
+      });
+      toast({
+        title: `${uploaded.length} Photo(s) Uploaded`,
+        description: 'Click "Zoom / Crop (1:1)" on any photo to fit it edge-to-edge cleanly.'
+      });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Error', description: err.message });
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleFileUploadForColor = async (colorIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const dataUrl = loadEvent.target?.result as string;
-        if (dataUrl) {
-          handleAddColorImage(colorIndex, dataUrl);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-    toast({ title: 'Photo(s) Added', description: `Uploaded to "${colors[colorIndex]?.name}" variant.` });
+    try {
+      for (const file of Array.from(files)) {
+        const compressed = await compressImageFile(file, 900, 0.84);
+        handleAddColorImage(colorIndex, compressed);
+      }
+      toast({ title: 'Photo(s) Added', description: `Uploaded to "${colors[colorIndex]?.name}" variant.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Error', description: err.message });
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const handleUpdateColor = (index: number, updates: Partial<ColorVariantItem>) => {
@@ -459,6 +502,8 @@ export function ProductFormDialog({
         gstRate: Number(gstRate) || 0,
         image: primaryImage,
         images: validImages,
+        imageTransforms,
+        imageTransform: imageTransforms[primaryImage] || null,
         colors: colors
           .filter(c => c.name.trim().length > 0)
           .map(c => {
@@ -861,14 +906,27 @@ export function ProductFormDialog({
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowBulkPaste(!showBulkPaste)}
-                  className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 font-bold text-[11px] flex items-center gap-1 hover:bg-purple-100 transition-all"
-                >
-                  <ClipboardPaste className="w-3 h-3" />
-                  <span>{showBulkPaste ? 'Hide Bulk Paste' : 'Quick Bulk Paste'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer px-3 py-1.5 rounded-xl border border-purple-300 bg-purple-600 text-white font-bold text-[11px] flex items-center gap-1 hover:bg-purple-700 transition-all shadow-xs">
+                    <Upload className="w-3 h-3" />
+                    <span>Upload Photos</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileUploadForGallery}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkPaste(!showBulkPaste)}
+                    className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 font-bold text-[11px] flex items-center gap-1 hover:bg-purple-100 transition-all"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                    <span>{showBulkPaste ? 'Hide Bulk Paste' : 'Quick Bulk Paste'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Quick Bulk Paste Box */}
@@ -915,12 +973,13 @@ export function ProductFormDialog({
                         : "border-slate-200 bg-slate-50/50"
                     )}
                   >
-                    {/* Thumbnail Preview */}
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-200 border border-slate-300/80 shrink-0 shadow-xs flex items-center justify-center">
+                    {/* Thumbnail Preview (1:1 Square) */}
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-200 border border-slate-300/80 shrink-0 shadow-xs flex items-center justify-center">
                       {url.trim() ? (
                         <img
                           src={url.trim()}
                           alt={`Preview ${idx + 1}`}
+                          style={getImageTransformStyle(imageTransforms[url.trim()])}
                           className="w-full h-full object-cover"
                           onError={(e: any) => {
                             e.target.src = 'https://placehold.co/100?text=Invalid';
@@ -942,15 +1001,26 @@ export function ProductFormDialog({
                         <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                           {idx === 0 ? 'Primary Cover Image URL' : `Gallery Image #${idx + 1}`}
                         </span>
-                        {idx > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleMakeCoverImage(idx)}
-                            className="text-[10px] font-bold text-purple-600 hover:underline"
-                          >
-                            Set as Cover Photo
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {url.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => setCropModalTarget({ type: 'gallery', idx })}
+                              className="text-[10px] font-bold text-purple-700 bg-purple-100 hover:bg-purple-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1"
+                            >
+                              <Crop className="w-3 h-3" /> Zoom / Crop (1:1)
+                            </button>
+                          )}
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleMakeCoverImage(idx)}
+                              className="text-[10px] font-bold text-purple-600 hover:underline"
+                            >
+                              Set as Cover Photo
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <Input
                         value={url}
@@ -1138,13 +1208,22 @@ export function ProductFormDialog({
                         {colorItem.images && colorItem.images.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {colorItem.images.map((imgUrl, imgIdx) => (
-                              <div key={imgIdx} className="relative group w-14 h-14 rounded-xl overflow-hidden border border-slate-300 bg-white shadow-xs">
+                              <div key={imgIdx} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-300 bg-white shadow-xs">
                                 <img
                                   src={imgUrl}
                                   alt={`${colorItem.name} ${imgIdx + 1}`}
+                                  style={getImageTransformStyle(imageTransforms[imgUrl])}
                                   className="w-full h-full object-cover"
                                   onError={(e: any) => { e.target.src = 'https://placehold.co/100?text=Invalid'; }}
                                 />
+                                <button
+                                  type="button"
+                                  onClick={() => setCropModalTarget({ type: 'color', colorIdx: cIdx, imgIdx })}
+                                  className="absolute bottom-0.5 left-0.5 bg-purple-600/90 hover:bg-purple-700 text-white rounded-md p-1 transition-colors"
+                                  title="Zoom / Crop 1:1"
+                                >
+                                  <Crop className="w-2.5 h-2.5" />
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveColorImage(cIdx, imgIdx)}
@@ -1475,6 +1554,44 @@ export function ProductFormDialog({
           </div>
         </div>
       </DialogContent>
+
+      {/* Interactive 1:1 Square Product Image Crop / Zoom / Reposition Modal */}
+      {(() => {
+        const targetUrl = !cropModalTarget
+          ? ''
+          : cropModalTarget.type === 'gallery'
+            ? (imageUrls[cropModalTarget.idx] || '')
+            : (colors[cropModalTarget.colorIdx]?.images?.[cropModalTarget.imgIdx] || '');
+
+        return (
+          <ImageTransformEditor
+            open={cropModalTarget !== null}
+            onOpenChange={(o) => !o && setCropModalTarget(null)}
+            imageUrl={targetUrl}
+            initialTransform={targetUrl ? imageTransforms[targetUrl] : undefined}
+            aspectRatio="1/1"
+            title="Adjust Product Image (1:1 Square Edge-to-Edge)"
+            onSave={({ imageUrl: updatedUrl, transform }) => {
+              if (!cropModalTarget) return;
+              if (cropModalTarget.type === 'gallery') {
+                handleUpdateImageUrl(cropModalTarget.idx, updatedUrl);
+              } else {
+                setColors((prev) => {
+                  const copy = [...prev];
+                  const imgs = [...(copy[cropModalTarget.colorIdx].images || [])];
+                  imgs[cropModalTarget.imgIdx] = updatedUrl;
+                  copy[cropModalTarget.colorIdx] = { ...copy[cropModalTarget.colorIdx], images: imgs };
+                  return copy;
+                });
+              }
+              setImageTransforms((prev) => ({
+                ...prev,
+                [updatedUrl]: transform
+              }));
+            }}
+          />
+        );
+      })()}
     </Dialog>
   );
 }

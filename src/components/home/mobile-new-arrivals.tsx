@@ -9,7 +9,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { cacheProduct, cacheProducts } from '@/lib/product-cache';
-import { getOptimizedImageUrl } from '@/lib/image-optimizer';
+import { getOptimizedImageUrl, getImageTransformStyle } from '@/lib/image-optimizer';
 
 interface MobileNewArrivalsProps {
   cms?: any;
@@ -111,15 +111,14 @@ export function MobileNewArrivals({ cms }: MobileNewArrivalsProps) {
                         onTouchStart={() => cacheProduct(p)}
                         className="block h-full"
                       >
-                        <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] h-full flex flex-col border border-purple-50/50">
-                          <div className="relative aspect-[4/5] w-full bg-slate-50">
-                            <Image 
-                              src={getOptimizedImageUrl(p.image, 360, 80)} 
+                        <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] h-full flex flex-col">
+                          <div className="relative aspect-square w-full overflow-hidden">
+                            <img 
+                              src={getOptimizedImageUrl(p.image, 360, 82)} 
                               alt={p.name} 
-                              fill 
-                              sizes="33vw"
                               loading="lazy"
-                              className="object-cover"
+                              style={getImageTransformStyle(p.imageTransform)}
+                              className="w-full h-full object-cover"
                             />
                           </div>
                           <div className="p-2 space-y-1.5 flex-1 flex flex-col justify-between">

@@ -3,6 +3,12 @@
  * Updated to support multiple images and consistent category mapping.
  */
 
+export interface ImageTransform {
+  zoom: number; // 1.0 to 3.0
+  x: number;    // -50 to 50 (% horizontal pan)
+  y: number;    // -50 to 50 (% vertical pan)
+}
+
 export interface ProductSEO {
   title?: string;
   description?: string;
@@ -64,6 +70,8 @@ export interface Product {
   deliveryTime?: string; // e.g. "2 - 4 Days"
   gstType?: 'percentage' | 'flat'; // 'percentage' (e.g. 18%) or 'flat' (e.g. ₹50)
   gstRate?: number; // GST rate percentage or flat rupees per unit
+  imageTransform?: ImageTransform; // Primary 1:1 square crop/zoom/pan
+  imageTransforms?: Record<string, ImageTransform>; // Per-image custom transform
   createdAt?: any;
   updatedAt?: any;
   seo?: ProductSEO;
@@ -98,6 +106,7 @@ export interface BannerLayoutStyle {
 
 export interface Banner {
   id: string;
+  placement?: 'hero' | 'collection' | 'seasonal';
   imageUrl: string;
   mobileImageUrl?: string;
   title?: string;
@@ -109,6 +118,9 @@ export interface Banner {
   active: boolean;
   desktopStyle?: BannerLayoutStyle;
   mobileStyle?: BannerLayoutStyle;
+  desktopTransform?: ImageTransform;
+  mobileTransform?: ImageTransform;
+  tornPaperBottom?: boolean;
   createdAt?: any;
   updatedAt?: any;
 }

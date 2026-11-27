@@ -124,6 +124,7 @@ const CORE_ITEMS = [
   { label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { label: 'Custom AI Orders', href: '/admin/customized-orders', icon: Wand2 },
   { label: 'Banners', href: '/admin/banners', icon: ImageIcon },
+  { label: 'Categories', href: '/admin/categories', icon: Shapes },
   { label: 'Purchase Popups', href: '/admin/popups', icon: BellRing },
   { label: 'Art Gallery', href: '/admin/art-gallery', icon: Palette },
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },

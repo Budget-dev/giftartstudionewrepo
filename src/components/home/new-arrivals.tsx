@@ -10,7 +10,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { useMemo, useEffect } from 'react';
 import { cacheProduct, cacheProducts } from '@/lib/product-cache';
-import { getOptimizedImageUrl } from '@/lib/image-optimizer';
+import { getOptimizedImageUrl, getImageTransformStyle } from '@/lib/image-optimizer';
 
 interface NewArrivalsProps {
   cms?: {
@@ -100,7 +100,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                   viewport={{ once: true }}
                   transition={{ duration: 0.8, type: "spring" }}
                   className={cn(
-                    "w-full md:w-[28%] bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl relative group cursor-pointer border-4 border-white/80",
+                    "w-full md:w-[28%] bg-white rounded-[2.5rem] md:rounded-[3rem] shadow-2xl relative group cursor-pointer",
                     i === 1 && "z-20 md:w-[30%]"
                   )}
                 >
@@ -132,10 +132,16 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                     prefetch={false}
                     onMouseEnter={() => cacheProduct(p)}
                     onTouchStart={() => cacheProduct(p)}
-                    className="block h-full rounded-[2.2rem] md:rounded-[3.2rem] overflow-hidden"
+                    className="block h-full rounded-[2.5rem] md:rounded-[3rem] overflow-hidden"
                   >
-                    <div className="aspect-square w-full bg-slate-50 overflow-hidden relative">
-                      <Image src={getOptimizedImageUrl(p.image, 500, 80)} alt={p.name} fill sizes="(max-width: 768px) 90vw, 30vw" loading="lazy" className="object-cover transition-transform duration-1000 group-hover:scale-110" />
+                    <div className="aspect-square w-full overflow-hidden relative">
+                      <img
+                        src={getOptimizedImageUrl(p.image, 550, 82)}
+                        alt={p.name}
+                        loading="lazy"
+                        style={getImageTransformStyle(p.imageTransform)}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
                     </div>
                     
                     <div className="bg-white p-6 md:p-8 space-y-4 flex flex-col items-center text-center">

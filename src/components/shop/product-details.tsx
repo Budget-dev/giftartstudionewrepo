@@ -41,7 +41,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { getOptimizedImageUrl, getThumbnailImageUrl } from '@/lib/image-optimizer';
+import { getOptimizedImageUrl, getThumbnailImageUrl, getImageTransformStyle } from '@/lib/image-optimizer';
 
 interface ProductDetailsProps {
   product: Product;
@@ -500,9 +500,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-6">
       <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
 
-        {/* Visual Column: Image Gallery */}
+        {/* Visual Column: Fixed 1:1 Edge-to-Edge Image Gallery */}
         <div className="lg:col-span-6 flex flex-col gap-4">
-          <div className="relative group rounded-3xl overflow-hidden bg-[#e6f4f1] border border-slate-100 shadow-sm aspect-square flex items-center justify-center">
+          <div className="relative group rounded-3xl overflow-hidden shadow-sm aspect-square flex items-center justify-center">
 
             {/* Top Badges */}
             <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-20">
@@ -536,21 +536,20 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             {/* Carousel Viewport */}
             <div className="w-full h-full overflow-hidden" ref={emblaRef}>
               <div className="flex h-full">
-                {galleryImages.map((img, i) => (
-                  <div key={i} className="relative flex-[0_0_100%] min-w-0 h-full p-4 md:p-6 flex items-center justify-center">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={getOptimizedImageUrl(img, 900)}
+                {galleryImages.map((img, i) => {
+                  const tx = (product as any).imageTransforms?.[img] || (i === 0 ? (product as any).imageTransform : undefined);
+                  return (
+                    <div key={i} className="relative flex-[0_0_100%] min-w-0 h-full overflow-hidden">
+                      <img
+                        src={getOptimizedImageUrl(img, 900, 84)}
                         alt={`${product.name} view ${i + 1}`}
-                        fill
-                        className="object-contain transition-transform duration-700 group-hover:scale-105"
-                        priority={i === 0}
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                        unoptimized
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        style={getImageTransformStyle(tx)}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
