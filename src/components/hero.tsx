@@ -84,6 +84,8 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
           linkUrl: b.linkUrl || b.primaryButtonUrl || '/shop',
           secondaryButtonText: b.secondaryButtonText,
           secondaryButtonUrl: b.secondaryButtonUrl,
+          desktopStyle: b.desktopStyle,
+          mobileStyle: b.mobileStyle,
           order: typeof b.order === 'number' ? b.order : parseInt(b.order, 10) || 1,
           active: true
         }))
@@ -144,13 +146,54 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
     currentBanner.primaryButtonText
   );
 
+  const activeStyle = isMobile ? currentBanner.mobileStyle : currentBanner.desktopStyle;
+  const hasCustomStyle = Boolean(
+    activeStyle && (
+      activeStyle.heightMode === 'custom' ||
+      activeStyle.widthMode === 'contained' ||
+      activeStyle.objectFit ||
+      activeStyle.paddingTop !== undefined ||
+      activeStyle.paddingBottom !== undefined ||
+      activeStyle.paddingX !== undefined ||
+      activeStyle.bgColor
+    )
+  );
+
+  const sectionStyle: React.CSSProperties = hasCustomStyle ? {
+    backgroundColor: activeStyle?.bgColor || '#f0f9ff',
+    paddingTop: activeStyle?.paddingTop !== undefined ? `${activeStyle.paddingTop}px` : undefined,
+    paddingBottom: activeStyle?.paddingBottom !== undefined ? `${activeStyle.paddingBottom}px` : undefined,
+    paddingLeft: activeStyle?.paddingX !== undefined ? `${activeStyle.paddingX}px` : undefined,
+    paddingRight: activeStyle?.paddingX !== undefined ? `${activeStyle.paddingX}px` : undefined,
+    height: activeStyle?.heightMode === 'custom' && activeStyle?.heightPx ? `${activeStyle.heightPx}px` : undefined,
+  } : {};
+
+  const fitClass = activeStyle?.objectFit === 'contain'
+    ? 'object-contain'
+    : activeStyle?.objectFit === 'fill'
+      ? 'object-fill'
+      : 'object-cover';
+
+  const imgStyle: React.CSSProperties = activeStyle?.objectPosition
+    ? { objectPosition: activeStyle.objectPosition }
+    : {};
+
   return (
     <section 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
-      className="relative overflow-hidden flex items-center pt-[110px] pb-12 md:pt-[140px] md:pb-16 lg:pt-[160px] lg:pb-20 w-full aspect-[3/5] md:aspect-auto lg:aspect-[4924/2684] md:min-h-[700px] lg:min-h-0 bg-sky-50 transition-all duration-700 select-none group/hero"
+      style={sectionStyle}
+      className={cn(
+        "relative overflow-hidden flex items-center bg-sky-50 transition-all duration-700 select-none group/hero",
+        activeStyle?.widthMode === 'contained' ? "max-w-7xl mx-auto rounded-3xl my-4" : "w-full",
+        activeStyle?.heightMode === 'custom'
+          ? "min-h-0"
+          : hasCustomStyle
+            ? "aspect-[3/4] md:aspect-[16/7]"
+            : "pt-[110px] pb-12 md:pt-[140px] md:pb-16 lg:pt-[160px] lg:pb-20 aspect-[3/5] md:aspect-auto lg:aspect-[4924/2684] md:min-h-[700px] lg:min-h-0"
+      )}
     >
       {/* Background Animated Slides */}
       <AnimatePresence initial={false} mode="wait">
@@ -160,6 +203,12 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7, ease: "easeInOut" }}
+          style={hasCustomStyle ? {
+            paddingTop: activeStyle?.paddingTop ? `${activeStyle.paddingTop}px` : undefined,
+            paddingBottom: activeStyle?.paddingBottom ? `${activeStyle.paddingBottom}px` : undefined,
+            paddingLeft: activeStyle?.paddingX ? `${activeStyle.paddingX}px` : undefined,
+            paddingRight: activeStyle?.paddingX ? `${activeStyle.paddingX}px` : undefined,
+          } : undefined}
           className="absolute inset-0 z-10"
         >
           {/* Desktop background */}
@@ -169,8 +218,11 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
             fetchPriority="high"
             loading="eager"
             decoding="async"
+            style={imgStyle}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover object-top",
+              "w-full h-full",
+              fitClass,
+              !activeStyle?.objectPosition && "object-top",
               currentBanner.mobileImageUrl && currentBanner.mobileImageUrl !== currentBanner.imageUrl ? "hidden md:block" : "block"
             )}
           />
@@ -184,7 +236,12 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
               fetchPriority="high"
               loading="eager"
               decoding="async"
-              className="absolute inset-0 w-full h-full object-cover object-top block md:hidden"
+              style={imgStyle}
+              className={cn(
+                "w-full h-full block md:hidden",
+                fitClass,
+                !activeStyle?.objectPosition && "object-top"
+              )}
             />
           )}
         </motion.div>

@@ -84,6 +84,18 @@ export interface CartItem extends Product {
   gstAmount?: number;
 }
 
+export interface BannerLayoutStyle {
+  heightMode?: 'auto' | 'custom';
+  heightPx?: number;
+  widthMode?: 'full' | 'contained';
+  objectFit?: 'cover' | 'contain' | 'fill';
+  objectPosition?: 'center top' | 'center center' | 'center bottom' | 'left center' | 'right center';
+  paddingTop?: number;
+  paddingBottom?: number;
+  paddingX?: number;
+  bgColor?: string;
+}
+
 export interface Banner {
   id: string;
   imageUrl: string;
@@ -95,6 +107,8 @@ export interface Banner {
   linkUrl?: string;
   order: number;
   active: boolean;
+  desktopStyle?: BannerLayoutStyle;
+  mobileStyle?: BannerLayoutStyle;
   createdAt?: any;
   updatedAt?: any;
 }

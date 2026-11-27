@@ -17,7 +17,12 @@ import {
   Clock, 
   CheckCircle2, 
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  Monitor,
+  Smartphone,
+  Sliders,
+  RotateCcw,
+  Maximize2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +49,31 @@ import {
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Banner } from '@/lib/types';
+import { Banner, BannerLayoutStyle } from '@/lib/types';
+
+const DEFAULT_DESKTOP_STYLE: BannerLayoutStyle = {
+  heightMode: 'auto',
+  heightPx: 620,
+  widthMode: 'full',
+  objectFit: 'cover',
+  objectPosition: 'center top',
+  paddingTop: 0,
+  paddingBottom: 0,
+  paddingX: 0,
+  bgColor: '#f0f9ff',
+};
+
+const DEFAULT_MOBILE_STYLE: BannerLayoutStyle = {
+  heightMode: 'auto',
+  heightPx: 460,
+  widthMode: 'full',
+  objectFit: 'cover',
+  objectPosition: 'center top',
+  paddingTop: 0,
+  paddingBottom: 0,
+  paddingX: 0,
+  bgColor: '#f0f9ff',
+};
 
 const INITIAL_DEFAULT_BANNERS = [
   {
@@ -79,6 +108,9 @@ export default function AdminBannersPage() {
   const [linkUrl, setLinkUrl] = useState('/shop');
   const [order, setOrder] = useState('1');
   const [active, setActive] = useState(true);
+  const [adjustTab, setAdjustTab] = useState<'desktop' | 'mobile'>('desktop');
+  const [desktopStyle, setDesktopStyle] = useState<BannerLayoutStyle>(DEFAULT_DESKTOP_STYLE);
+  const [mobileStyle, setMobileStyle] = useState<BannerLayoutStyle>(DEFAULT_MOBILE_STYLE);
 
   const bannersQuery = useMemo(() => {
     if (!db) return null;
@@ -100,6 +132,8 @@ export default function AdminBannersPage() {
       linkUrl: doc.linkUrl || '/shop',
       order: typeof doc.order === 'number' ? doc.order : parseInt(doc.order, 10) || 0,
       active: doc.active !== false,
+      desktopStyle: doc.desktopStyle,
+      mobileStyle: doc.mobileStyle,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt
     })).sort((a, b) => a.order - b.order);
@@ -115,6 +149,9 @@ export default function AdminBannersPage() {
     setLinkUrl('/shop');
     setOrder(String((banners.length || 0) + 1));
     setActive(true);
+    setDesktopStyle({ ...DEFAULT_DESKTOP_STYLE });
+    setMobileStyle({ ...DEFAULT_MOBILE_STYLE });
+    setAdjustTab('desktop');
     setEditingBanner(null);
   };
 
@@ -134,6 +171,9 @@ export default function AdminBannersPage() {
     setLinkUrl(banner.linkUrl || '/shop');
     setOrder(String(banner.order || 1));
     setActive(banner.active !== false);
+    setDesktopStyle({ ...DEFAULT_DESKTOP_STYLE, ...(banner.desktopStyle || {}) });
+    setMobileStyle({ ...DEFAULT_MOBILE_STYLE, ...(banner.mobileStyle || {}) });
+    setAdjustTab('desktop');
     setIsDialogOpen(true);
   };
 
@@ -162,6 +202,8 @@ export default function AdminBannersPage() {
         linkUrl: linkUrl.trim() || '/shop',
         order: Number(order) || 1,
         active: Boolean(active),
+        desktopStyle,
+        mobileStyle,
         updatedAt: serverTimestamp()
       };
 
@@ -470,182 +512,408 @@ export default function AdminBannersPage() {
 
       {/* Add / Edit Banner Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-headline font-black text-slate-900 tracking-tight">
-              {editingBanner ? "Edit Banner" : "Add New Banner"}
+              {editingBanner ? "Edit Banner & Layout Adjustments" : "Add New Banner & Layout Adjustments"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Provide the banner image URL and optional details. Active banners will cycle every 5 seconds on the homepage.
+              Add your banner URLs and fine-tune Desktop &amp; Mobile width, height/length, image fit, alignment, and CSS padding before submitting.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-5 pt-3">
-            {/* Desktop / Main Image URL */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Desktop / Main Banner Image URL *</span>
-                <span className="text-[10px] text-purple-600 font-semibold">Required</span>
-              </Label>
-              <Input
-                type="url"
-                required
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://rohanwakkar.sirv.com/my-banner.png"
-                className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-              />
-              <p className="text-[10px] text-slate-400">
-                Direct image link (Sirv, Cloudinary, AWS S3, or any HTTPS PNG/JPEG URL).
-              </p>
-            </div>
-
-            {/* Desktop Image Preview */}
-            {imageUrl.trim() && (
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Live Image Preview:</span>
-                <div className="relative aspect-[16/7] w-full rounded-2xl bg-slate-100 overflow-hidden border border-slate-200">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageUrl.trim()}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
+          <form onSubmit={handleSubmit} className="pt-3">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* LEFT COLUMN: Banner URLs & Content */}
+              <div className="lg:col-span-6 space-y-4">
+                {/* Desktop / Main Image URL */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Desktop / Main Banner Image URL *</span>
+                    <span className="text-[10px] text-purple-600 font-semibold">Required</span>
+                  </Label>
+                  <Input
+                    type="url"
+                    required
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://rohanwakkar.sirv.com/my-banner.png"
+                    className="rounded-xl h-10 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
                   />
                 </div>
-              </div>
-            )}
 
-            {/* Mobile Image URL (Optional) */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Mobile Specific Image URL (Optional)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Falls back to desktop URL if empty</span>
-              </Label>
-              <Input
-                type="url"
-                value={mobileImageUrl}
-                onChange={(e) => setMobileImageUrl(e.target.value)}
-                placeholder="https://rohanwakkar.sirv.com/my-mobile-banner.jpeg"
-                className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-              />
+                {/* Mobile Image URL (Optional) */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Mobile Specific Image URL (Optional)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Falls back to desktop URL</span>
+                  </Label>
+                  <Input
+                    type="url"
+                    value={mobileImageUrl}
+                    onChange={(e) => setMobileImageUrl(e.target.value)}
+                    placeholder="https://rohanwakkar.sirv.com/my-mobile-banner.jpeg"
+                    className="rounded-xl h-10 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
+                  />
+                </div>
+
+                {/* Optional Banner Title & Subheading */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Banner Heading (Optional)</Label>
+                    <Input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Unique Gifts, Made for Kids"
+                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Badge / Subheading (Optional)</Label>
+                    <Input
+                      type="text"
+                      value={subHeading}
+                      onChange={(e) => setSubHeading(e.target.value)}
+                      placeholder="e.g. UNIQUE, PERSONALIZED GIFTS"
+                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700">Short Description (Optional)</Label>
+                  <Input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Create unforgettable memories with personalized gifts."
+                    className="rounded-xl h-10 border-slate-200 text-xs font-medium"
+                  />
+                </div>
+
+                {/* Button Text & Target Link */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">CTA Button Text (Optional)</Label>
+                    <Input
+                      type="text"
+                      value={primaryButtonText}
+                      onChange={(e) => setPrimaryButtonText(e.target.value)}
+                      placeholder="e.g. Explore Shop"
+                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Destination Link URL</Label>
+                    <Input
+                      type="text"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="e.g. /shop or /collections"
+                      className="rounded-xl h-10 border-slate-200 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Order and Active status */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">Slide Order</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={order}
+                      onChange={(e) => setOrder(e.target.value)}
+                      className="rounded-xl h-10 border-slate-200 text-xs font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                    <Label className="text-xs font-bold text-slate-700">Status</Label>
+                    <button
+                      type="button"
+                      onClick={() => setActive(!active)}
+                      className={cn(
+                        "h-10 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-colors",
+                        active ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-slate-100 border-slate-200 text-slate-500"
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className={cn("w-2 h-2 rounded-full", active ? "bg-emerald-500" : "bg-slate-400")} />
+                        {active ? "Active" : "Hidden"}
+                      </span>
+                      <span className="text-[10px] underline">Toggle</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Desktop & Mobile CSS / Layout Adjustments + Live Preview */}
+              <div className="lg:col-span-6 bg-slate-50/90 border border-slate-200 rounded-2xl p-4 space-y-4">
+                {(() => {
+                  const isMobileTab = adjustTab === 'mobile';
+                  const currentLayout = isMobileTab ? mobileStyle : desktopStyle;
+                  const setCurrentLayout = isMobileTab ? setMobileStyle : setDesktopStyle;
+                  const previewImg = isMobileTab ? (mobileImageUrl.trim() || imageUrl.trim()) : imageUrl.trim();
+
+                  const updateField = <K extends keyof BannerLayoutStyle>(key: K, val: BannerLayoutStyle[K]) => {
+                    setCurrentLayout(prev => ({ ...prev, [key]: val }));
+                  };
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-800 uppercase tracking-wider">
+                          <Sliders className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Layout &amp; CSS Adjustments</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentLayout(isMobileTab ? { ...DEFAULT_MOBILE_STYLE } : { ...DEFAULT_DESKTOP_STYLE })}
+                          className="text-[10px] font-bold text-slate-500 hover:text-purple-600 flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Reset {isMobileTab ? 'Mobile' : 'Desktop'}
+                        </button>
+                      </div>
+
+                      {/* Desktop vs Mobile Switcher */}
+                      <div className="grid grid-cols-2 gap-2 p-1 bg-white rounded-xl border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setAdjustTab('desktop')}
+                          className={cn(
+                            "py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all",
+                            !isMobileTab ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                          )}
+                        >
+                          <Monitor className="w-3.5 h-3.5" /> Desktop View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdjustTab('mobile')}
+                          className={cn(
+                            "py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all",
+                            isMobileTab ? "bg-purple-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                          )}
+                        >
+                          <Smartphone className="w-3.5 h-3.5" /> Mobile View
+                        </button>
+                      </div>
+
+                      {/* Quick 1-Click Fit Presets */}
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'contain', paddingTop: 0, paddingBottom: 0, paddingX: 0 }))}
+                          className="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 text-[10px] font-bold flex items-center gap-1"
+                        >
+                          <Maximize2 className="w-3 h-3" /> Full Width (No Crop)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'cover', objectPosition: 'center center' }))}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold"
+                        >
+                          Full Bleed Cover
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentLayout(prev => ({ ...prev, widthMode: 'full', objectFit: 'fill', paddingX: 0 }))}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold"
+                        >
+                          Stretch 100%
+                        </button>
+                      </div>
+
+                      {/* Live Scaled Preview */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">
+                          Live {isMobileTab ? 'Mobile' : 'Desktop'} Preview:
+                        </span>
+                        <div className={cn(
+                          "mx-auto border border-slate-300 rounded-xl overflow-hidden bg-slate-200 flex items-center justify-center",
+                          isMobileTab ? "w-[180px]" : "w-full"
+                        )}>
+                          <div
+                            style={{
+                              backgroundColor: currentLayout.bgColor || '#f0f9ff',
+                              paddingTop: `${Math.round((currentLayout.paddingTop || 0) * 0.3)}px`,
+                              paddingBottom: `${Math.round((currentLayout.paddingBottom || 0) * 0.3)}px`,
+                              paddingLeft: `${Math.round((currentLayout.paddingX || 0) * 0.3)}px`,
+                              paddingRight: `${Math.round((currentLayout.paddingX || 0) * 0.3)}px`,
+                              height: currentLayout.heightMode === 'custom' && currentLayout.heightPx
+                                ? `${Math.max(80, Math.round(currentLayout.heightPx * (isMobileTab ? 0.38 : 0.28)))}px`
+                                : isMobileTab ? '220px' : '150px',
+                              width: currentLayout.widthMode === 'contained' ? '88%' : '100%',
+                            }}
+                            className="relative overflow-hidden transition-all"
+                          >
+                            {previewImg ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={previewImg}
+                                alt="Live Preview"
+                                style={{
+                                  objectFit: currentLayout.objectFit || 'cover',
+                                  objectPosition: currentLayout.objectPosition || 'center top',
+                                }}
+                                className="w-full h-full"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                Enter Image URL to Preview
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Adjustment Controls */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-slate-600">Width</Label>
+                          <select
+                            value={currentLayout.widthMode || 'full'}
+                            onChange={(e) => updateField('widthMode', e.target.value as any)}
+                            className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                          >
+                            <option value="full">100% Full Width</option>
+                            <option value="contained">Contained Box</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-slate-600">Image Fit</Label>
+                          <select
+                            value={currentLayout.objectFit || 'cover'}
+                            onChange={(e) => updateField('objectFit', e.target.value as any)}
+                            className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                          >
+                            <option value="cover">Cover (Fill Area)</option>
+                            <option value="contain">Contain (Full Image, No Crop)</option>
+                            <option value="fill">Fill (Stretch 100%)</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-slate-600">Height Mode</Label>
+                          <select
+                            value={currentLayout.heightMode || 'auto'}
+                            onChange={(e) => updateField('heightMode', e.target.value as any)}
+                            className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                          >
+                            <option value="auto">Auto Aspect Ratio</option>
+                            <option value="custom">Custom Length (px)</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-slate-600">Image Alignment</Label>
+                          <select
+                            value={currentLayout.objectPosition || 'center top'}
+                            onChange={(e) => updateField('objectPosition', e.target.value as any)}
+                            className="w-full h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-semibold"
+                          >
+                            <option value="center top">Top</option>
+                            <option value="center center">Center</option>
+                            <option value="center bottom">Bottom</option>
+                            <option value="left center">Left</option>
+                            <option value="right center">Right</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {currentLayout.heightMode === 'custom' && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] font-bold text-slate-700">
+                            <span>Banner Length / Height</span>
+                            <span className="text-purple-700">{currentLayout.heightPx || (isMobileTab ? 460 : 620)}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={220}
+                            max={950}
+                            step={10}
+                            value={currentLayout.heightPx || (isMobileTab ? 460 : 620)}
+                            onChange={(e) => updateField('heightPx', Number(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
+                        </div>
+                      )}
+
+                      {/* CSS Padding Sliders */}
+                      <div className="space-y-2.5 pt-1 border-t border-slate-200">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                            <span>Padding Top</span>
+                            <span className="text-purple-700">{currentLayout.paddingTop || 0}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            step={4}
+                            value={currentLayout.paddingTop || 0}
+                            onChange={(e) => updateField('paddingTop', Number(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                            <span>Padding Bottom</span>
+                            <span className="text-purple-700">{currentLayout.paddingBottom || 0}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            step={4}
+                            value={currentLayout.paddingBottom || 0}
+                            onChange={(e) => updateField('paddingBottom', Number(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 items-center">
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                              <span>Left / Right Padding</span>
+                              <span className="text-purple-700">{currentLayout.paddingX || 0}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={120}
+                              step={4}
+                              value={currentLayout.paddingX || 0}
+                              onChange={(e) => updateField('paddingX', Number(e.target.value))}
+                              className="w-full accent-purple-600"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[11px] font-bold text-slate-600 block">Background Color</Label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={currentLayout.bgColor || '#f0f9ff'}
+                                onChange={(e) => updateField('bgColor', e.target.value)}
+                                className="w-9 h-8 rounded-lg border border-slate-200 cursor-pointer"
+                              />
+                              <span className="text-[10px] font-mono text-slate-500">{currentLayout.bgColor || '#f0f9ff'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
 
-            {/* Optional Banner Title & Subheading */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">
-                  Banner Heading (Optional)
-                </Label>
-                <Input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Unique Gifts, Made for Kids"
-                  className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">
-                  Badge / Subheading (Optional)
-                </Label>
-                <Input
-                  type="text"
-                  value={subHeading}
-                  onChange={(e) => setSubHeading(e.target.value)}
-                  placeholder="e.g. UNIQUE, PERSONALIZED GIFTS"
-                  className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">
-                Short Description (Optional)
-              </Label>
-              <Input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Create unforgettable memories with personalized gifts."
-                className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-              />
-            </div>
-
-            {/* Button Text & Target Link */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">
-                  CTA Button Text (Optional)
-                </Label>
-                <Input
-                  type="text"
-                  value={primaryButtonText}
-                  onChange={(e) => setPrimaryButtonText(e.target.value)}
-                  placeholder="e.g. Explore Shop (leave blank to hide button)"
-                  className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">
-                  Destination / Click Link URL
-                </Label>
-                <Input
-                  type="text"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="e.g. /shop or /collections"
-                  className="rounded-xl h-11 border-slate-200 text-xs font-medium focus-visible:ring-purple-500"
-                />
-              </div>
-            </div>
-
-            {/* Order and Active status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">
-                  Slide Sequence / Order
-                </Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={order}
-                  onChange={(e) => setOrder(e.target.value)}
-                  placeholder="1"
-                  className="rounded-xl h-11 border-slate-200 text-xs font-bold focus-visible:ring-purple-500"
-                />
-                <p className="text-[10px] text-slate-400">Order #1 appears first, then #2, etc.</p>
-              </div>
-
-              <div className="space-y-1.5 flex flex-col justify-end">
-                <Label className="text-xs font-bold text-slate-700 mb-2">
-                  Display Status
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setActive(!active)}
-                  className={cn(
-                    "h-11 px-4 rounded-xl border font-bold text-xs flex items-center justify-between transition-colors",
-                    active
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                      : "bg-slate-100 border-slate-200 text-slate-500"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className={cn("w-2.5 h-2.5 rounded-full", active ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
-                    {active ? "Active in Carousel" : "Disabled / Hidden"}
-                  </span>
-                  <span className="text-[10px] uppercase underline">Toggle</span>
-                </button>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <DialogFooter className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"
