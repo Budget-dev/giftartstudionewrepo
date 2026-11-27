@@ -128,6 +128,19 @@ rules_version = '2';
 // Collection: rto
 // Document ID: rtoId
 //
+// Collection: purchase_popups
+// Document ID: popupId (auto-generated)
+// Fields:
+//   - buyerName: string (optional) - Buyer display name
+//   - productName: string (optional) - Purchased product name
+//   - location: string (optional) - Buyer city/location
+//   - timeLabel: string (optional) - Relative time label
+//   - imageUrl: string (optional) - Product thumbnail URL
+//   - productUrl: string (optional) - Target product link
+//   - active: bool (optional) - Visibility toggle
+//   - order: number (optional) - Display priority
+//   - createdAt: timestamp (optional)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -242,6 +255,12 @@ service cloud.firestore {
 
     // Hero & Promo Banners: Public read, super owner write
     match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isSuperOwner();
+    }
+
+    // Purchase Popups: Public read, super owner write
+    match /purchase_popups/{popupId} {
       allow read: if true;
       allow write: if isSuperOwner();
     }

@@ -25,7 +25,8 @@ import {
   Truck,
   Image as ImageIcon,
   Palette,
-  BookOpen
+  BookOpen,
+  BellRing
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useFirestore, useCollection } from '@/firebase';
@@ -123,6 +124,7 @@ const CORE_ITEMS = [
   { label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { label: 'Custom AI Orders', href: '/admin/customized-orders', icon: Wand2 },
   { label: 'Banners', href: '/admin/banners', icon: ImageIcon },
+  { label: 'Purchase Popups', href: '/admin/popups', icon: BellRing },
   { label: 'Art Gallery', href: '/admin/art-gallery', icon: Palette },
   { label: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { label: 'RTO Management', href: '/admin/rto', icon: Undo2 },
