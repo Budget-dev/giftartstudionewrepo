@@ -6,7 +6,10 @@
  * countdown, fireworks, and "जय शंकर" (JAI SHANKAR).
  * DESKTOP ONLY: renders nothing on phones/tablets.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 interface GrandOpeningOverlayProps {
   minWidth?: number;
@@ -404,12 +407,20 @@ export default function GrandOpeningOverlay({
   storageKey = 'gasOpened',
   onFinish,
 }: GrandOpeningOverlayProps) {
-  const [active, setActive] = useState(true);
+  const db = useFirestore();
+  const pathname = usePathname();
+  const [active, setActive] = useState(false);
   const [hasCut, setHasCut] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const soundRef = useRef<CeremonySoundEngine | null>(null);
   const closeRef = useRef<(() => void) | null>(null);
   const triggerCutRef = useRef<(() => void) | null>(null);
+
+  const settingsRef = useMemo(() => {
+    if (!db) return null;
+    return doc(db, 'settings', 'grand_opening');
+  }, [db]);
+  const { data: settings } = useDoc<{ enabled?: boolean }>(settingsRef);
 
   const r = {
     root: useRef<HTMLDivElement>(null),
@@ -425,9 +436,24 @@ export default function GrandOpeningOverlay({
     num: useRef<HTMLDivElement>(null),
   };
 
-  /* 1) Session / device gate */
+  /* 1) Admin toggle + Session / device gate */
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Never show inside admin panel
+    if (pathname?.startsWith('/admin')) {
+      setActive(false);
+      return;
+    }
+
+    const forced = window.location.hash === '#opening';
+
+    // Disabled by default unless explicitly enabled by admin in Firestore
+    if (settings?.enabled !== true && !forced) {
+      setActive(false);
+      return;
+    }
+
     const desktop = window.matchMedia(`(min-width: ${minWidth}px) and (hover: hover) and (pointer: fine)`).matches;
     if (!desktop) {
       setActive(false);
@@ -437,7 +463,6 @@ export default function GrandOpeningOverlay({
       setActive(false);
       return;
     }
-    const forced = window.location.hash === '#opening';
     let seen = false;
     try {
       seen = sessionStorage.getItem(storageKey) === '1';
@@ -445,8 +470,11 @@ export default function GrandOpeningOverlay({
 
     if (once && seen && !forced) {
       setActive(false);
+      return;
     }
-  }, [minWidth, once, until, storageKey]);
+
+    setActive(true);
+  }, [minWidth, once, until, storageKey, settings?.enabled, pathname]);
 
   /* 2) Setup Canvas & Interactive Cut Trigger */
   useEffect(() => {

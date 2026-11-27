@@ -84,7 +84,38 @@ export default function AdminPopupsPage() {
   }, [db]);
   const { data: settings } = useDoc<{ enabled?: boolean; intervalSeconds?: number }>(settingsRef);
 
+  // Welcome / Grand Opening animation toggle doc
+  const welcomeSettingsRef = useMemo(() => {
+    if (!db) return null;
+    return doc(db, 'settings', 'grand_opening');
+  }, [db]);
+  const { data: welcomeSettings } = useDoc<{ enabled?: boolean }>(welcomeSettingsRef);
+  const [isSavingWelcome, setIsSavingWelcome] = useState(false);
+
   const isGlobalEnabled = settings?.enabled !== false;
+  const isWelcomeEnabled = welcomeSettings?.enabled === true;
+
+  const handleToggleWelcome = async (nextEnabled: boolean) => {
+    if (!db) return;
+    setIsSavingWelcome(true);
+    try {
+      await setDoc(
+        doc(db, 'settings', 'grand_opening'),
+        { enabled: nextEnabled, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      toast({
+        title: nextEnabled ? 'Welcome Animation Enabled' : 'Welcome Animation Disabled',
+        description: nextEnabled
+          ? 'The Jai Shankar ribbon-cutting inauguration animation will now show to new visitors.'
+          : 'The welcome inauguration animation is now turned OFF.'
+      });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
+    } finally {
+      setIsSavingWelcome(false);
+    }
+  };
 
   useEffect(() => {
     if (settings?.intervalSeconds) {
@@ -339,6 +370,59 @@ export default function AdminPopupsPage() {
               {isGlobalEnabled ? 'Stop All Popups' : 'Enable Popups'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Welcome Animation (Jai Shankar) On/Off Toggle Card */}
+      <Card className={cn(
+        "rounded-3xl border-2 transition-colors shadow-sm",
+        isWelcomeEnabled ? "border-amber-300 bg-amber-50/50" : "border-slate-200 bg-slate-50/70"
+      )}>
+        <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm",
+              isWelcomeEnabled ? "bg-amber-500 text-white" : "bg-slate-600 text-white"
+            )}>
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-extrabold text-base sm:text-lg text-slate-900">
+                  Welcome Inauguration Animation (Jai Shankar)
+                </h2>
+                <span className={cn(
+                  "text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full",
+                  isWelcomeEnabled ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-600"
+                )}>
+                  {isWelcomeEnabled ? 'ON' : 'OFF'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                {isWelcomeEnabled
+                  ? 'Ribbon-cutting countdown & Jai Shankar celebration animation is currently ON for visitors.'
+                  : 'Currently disabled. Visitors go straight to the homepage without the ribbon-cutting screen.'}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => handleToggleWelcome(!isWelcomeEnabled)}
+            disabled={isSavingWelcome}
+            variant={isWelcomeEnabled ? 'destructive' : 'default'}
+            className={cn(
+              "rounded-2xl font-extrabold text-xs h-11 px-5 gap-2 shrink-0",
+              !isWelcomeEnabled && "bg-amber-600 hover:bg-amber-700 text-white"
+            )}
+          >
+            {isSavingWelcome ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Power className="w-4 h-4" />
+            )}
+            {isWelcomeEnabled ? 'Turn Off Welcome Animation' : 'Turn On Welcome Animation'}
+          </Button>
         </CardContent>
       </Card>
 
