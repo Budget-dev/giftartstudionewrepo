@@ -40,7 +40,7 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
     );
   }, [db]);
 
-  const { data: products, loading } = useCollection<any>(festiveQuery);
+  const { data: products, loading } = useCollection<any>(festiveQuery, 'home_festive');
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -48,7 +48,7 @@ export function FestiveSection({ cms }: FestiveSectionProps) {
     }
   }, [products]);
 
-  const bannerUrl = cms?.bannerUrl || DEFAULT_BANNER;
+  const bannerUrl = getOptimizedImageUrl(cms?.bannerUrl || DEFAULT_BANNER, 1440, 80);
   const sectionTitle = cms?.title || "Celebration Gifts Collection";
 
   return (

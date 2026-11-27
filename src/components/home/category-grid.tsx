@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 export interface CategoryCardItem {
   title: string;
@@ -264,11 +265,12 @@ export function CategoryGrid({ cms }: { cms?: any }) {
                       {cat.imageUrl && (
                         <div className="absolute -bottom-4 sm:-bottom-6 md:-bottom-8 left-1/2 -translate-x-1/2 w-[105%] sm:w-[110%] h-[82%] sm:h-[86%] transition-all duration-500 group-hover:scale-108 group-hover:-translate-y-1.5 origin-bottom pointer-events-none">
                           <Image 
-                            src={cat.imageUrl} 
+                            src={getOptimizedImageUrl(cat.imageUrl, 400, 80)} 
                             alt={cat.title} 
                             fill 
+                            sizes="(max-width: 640px) 66vw, (max-width: 1024px) 30vw, 22vw"
+                            loading={i < 4 ? "eager" : "lazy"}
                             className="object-contain object-bottom drop-shadow-[0_15px_15px_rgba(0,0,0,0.18)]"
-                            unoptimized
                           />
                         </div>
                       )}

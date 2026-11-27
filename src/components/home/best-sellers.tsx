@@ -10,9 +10,10 @@ import { collection, query, where, limit } from 'firebase/firestore';
 import { useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { cacheProduct, cacheProducts } from '@/lib/product-cache';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
-// The high-resolution background provided by the user
-const BG_ARTWORK = "https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png";
+// The high-resolution background provided by the user (optimized via Cloudinary)
+const BG_ARTWORK = getOptimizedImageUrl("https://res.cloudinary.com/drjrbb4yn/image/upload/v1782027359/kids-image_pn17nh.png", 1400, 80);
 
 // Reference image exact colors
 const CARD_THEMES = [
@@ -33,7 +34,7 @@ export function BestSellers({ cms }: { cms?: any }) {
     );
   }, [db]);
 
-  const { data: products, loading } = useCollection<any>(bestSellersQuery);
+  const { data: products, loading } = useCollection<any>(bestSellersQuery, 'home_best_sellers');
 
   useEffect(() => {
     if (products?.length) {
@@ -92,9 +93,9 @@ export function BestSellers({ cms }: { cms?: any }) {
             src={BG_ARTWORK} 
             alt="Best Sellers" 
             fill 
+            sizes="100vw"
+            loading="lazy"
             className="object-contain object-top"
-            priority
-            unoptimized
           />
         </div>
 
@@ -168,11 +169,12 @@ export function BestSellers({ cms }: { cms?: any }) {
                         {/* Product Image Area - Edge-to-edge top, left, right to match reference */}
                         <div className="relative aspect-square w-full bg-white rounded-t-[3rem] overflow-hidden">
                           <Image 
-                            src={p.image} 
+                            src={getOptimizedImageUrl(p.image, 500, 80)} 
                             alt={p.name} 
                             fill 
+                            sizes="(max-width: 1024px) 33vw, 28vw"
+                            loading="lazy"
                             className="object-cover transition-transform duration-1000 group-hover:scale-110" 
-                            unoptimized 
                           />
                         </div>
                         

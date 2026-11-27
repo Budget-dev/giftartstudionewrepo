@@ -39,7 +39,7 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
     );
   }, [db]);
 
-  const { data: products, loading } = useCollection<any>(festiveQuery);
+  const { data: products, loading } = useCollection<any>(festiveQuery, 'home_festive_mobile');
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -66,7 +66,7 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
     return () => clearInterval(autoScroll);
   }, [emblaApi, onSelect]);
 
-  const bannerUrl = cms?.bannerUrl || DEFAULT_BANNER;
+  const bannerUrl = getOptimizedImageUrl(cms?.bannerUrl || DEFAULT_BANNER, 800, 80);
 
   return (
     <section className="md:hidden py-10 bg-white overflow-hidden">
@@ -79,8 +79,9 @@ export function MobileFestiveCarousel({ cms }: MobileFestiveCarouselProps) {
               src={bannerUrl} 
               alt="Festive Collection" 
               fill
+              sizes="100vw"
+              loading="lazy"
               className="object-cover object-top"
-              unoptimized
             />
           </div>
         </div>

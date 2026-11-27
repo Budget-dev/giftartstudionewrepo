@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 const DEFAULT_MOCK = {
   title: "Magical Reels",
@@ -68,9 +69,11 @@ export function MagicalMedia({ cms }: { cms?: any }) {
               onClick={() => reel.url && setSelectedVideo(reel.url)}
             >
               <Image 
-                src={reel.thumbnailUrl} 
+                src={getOptimizedImageUrl(reel.thumbnailUrl, 450, 75)} 
                 alt={reel.title} 
                 fill 
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
                 className="object-cover transition-transform duration-1000 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />

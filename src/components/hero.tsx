@@ -9,6 +9,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Banner } from '@/lib/types';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 interface HeroProps {
   cms?: any;
@@ -60,7 +61,7 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
     return query(collection(db, 'banners'), orderBy('order', 'asc'));
   }, [db]);
 
-  const { data: rawBanners } = useCollection<any>(bannersQuery);
+  const { data: rawBanners } = useCollection<any>(bannersQuery, cms ? undefined : 'home_banners');
 
   // Filter active banners and format
   const activeBanners = useMemo(() => {
@@ -162,23 +163,28 @@ export const Hero = memo(({ cms, isMobile }: HeroProps) => {
           className="absolute inset-0 z-10"
         >
           {/* Desktop background */}
-          <div 
+          <img
+            src={getOptimizedImageUrl(currentBanner.imageUrl, 1600, 82)}
+            alt={currentBanner.title || currentBanner.heading || 'GiftArtStudio Banner'}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className={cn(
-              "absolute inset-0 bg-no-repeat bg-cover bg-[position:center_top]",
+              "absolute inset-0 w-full h-full object-cover object-top",
               currentBanner.mobileImageUrl && currentBanner.mobileImageUrl !== currentBanner.imageUrl ? "hidden md:block" : "block"
             )}
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), url('${currentBanner.imageUrl}')`,
-            }}
           />
+          <div className="absolute inset-0 bg-white/5 pointer-events-none" />
 
           {/* Mobile background (if mobileImageUrl provided) */}
           {currentBanner.mobileImageUrl && currentBanner.mobileImageUrl !== currentBanner.imageUrl && (
-            <div 
-              className="absolute inset-0 bg-no-repeat bg-cover bg-[position:center_top] block md:hidden"
-              style={{
-                backgroundImage: `linear-gradient(rgba(255,255,255,0.05), rgba(255,255,255,0.05)), url('${currentBanner.mobileImageUrl}')`,
-              }}
+            <img
+              src={getOptimizedImageUrl(currentBanner.mobileImageUrl, 800, 82)}
+              alt={currentBanner.title || currentBanner.heading || 'GiftArtStudio Banner'}
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover object-top block md:hidden"
             />
           )}
         </motion.div>

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Play, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 const DEFAULT_REELS = [
   { 
@@ -62,9 +63,11 @@ export function MagicalPicksMobile({ cms }: { cms?: any }) {
               {/* Thumbnail */}
               {reel.thumbnailUrl ? (
                 <Image 
-                  src={reel.thumbnailUrl} 
+                  src={getOptimizedImageUrl(reel.thumbnailUrl, 360, 75)} 
                   alt={reel.title} 
                   fill 
+                  sizes="25vw"
+                  loading="lazy"
                   className="object-cover"
                 />
               ) : (

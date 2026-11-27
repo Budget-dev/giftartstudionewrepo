@@ -10,6 +10,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, limit } from 'firebase/firestore';
 import { useMemo, useEffect } from 'react';
 import { cacheProduct, cacheProducts } from '@/lib/product-cache';
+import { getOptimizedImageUrl } from '@/lib/image-optimizer';
 
 interface NewArrivalsProps {
   cms?: {
@@ -34,7 +35,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
     );
   }, [db]);
 
-  const { data: products, loading } = useCollection<any>(arrivalsQuery);
+  const { data: products, loading } = useCollection<any>(arrivalsQuery, 'home_new_arrivals');
   const title = cms?.title || "New Arrivals";
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
     }
   }, [products]);
 
-  const bgImage = "https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/new-arrivals-sectoon-background.png";
+  const bgImage = getOptimizedImageUrl("https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/new-arrivals-sectoon-background.png", 1440, 80);
 
   return (
     <section className="relative overflow-hidden bg-white">
@@ -110,7 +111,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                       transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                       className="absolute -top-16 -left-16 w-32 h-32 md:w-44 md:h-44 opacity-100 z-30 hidden md:block pointer-events-none"
                     >
-                       <Image src="https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/flower-element-2.png" alt="" fill className="object-contain" />
+                       <Image src={getOptimizedImageUrl("https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/flower-element-2.png", 240, 80)} alt="" fill className="object-contain" loading="lazy" />
                     </motion.div>
                   )}
 
@@ -121,7 +122,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                       transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
                       className="absolute -bottom-20 -right-20 w-36 h-36 md:w-48 md:h-48 opacity-100 z-30 hidden md:block pointer-events-none"
                     >
-                       <Image src="https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/flower-element-1.png" alt="" fill className="object-contain" />
+                       <Image src={getOptimizedImageUrl("https://rohanwakkar.sirv.com/GiftArtStudio%202/website%20required%20shapes/website%20required%20shapes/flower-element-1.png", 240, 80)} alt="" fill className="object-contain" loading="lazy" />
                     </motion.div>
                   )}
 
@@ -134,7 +135,7 @@ export function NewArrivals({ cms }: NewArrivalsProps) {
                     className="block h-full rounded-[2.2rem] md:rounded-[3.2rem] overflow-hidden"
                   >
                     <div className="aspect-square w-full bg-slate-50 overflow-hidden relative">
-                      <Image src={p.image} alt={p.name} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" unoptimized />
+                      <Image src={getOptimizedImageUrl(p.image, 500, 80)} alt={p.name} fill sizes="(max-width: 768px) 90vw, 30vw" loading="lazy" className="object-cover transition-transform duration-1000 group-hover:scale-110" />
                     </div>
                     
                     <div className="bg-white p-6 md:p-8 space-y-4 flex flex-col items-center text-center">
